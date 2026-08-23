@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TCC Admin — Control Center</title>
+<style>
+:root{--bg:#080808;--side:#0d0d0d;--panel:#111;--panel2:#151515;--line:#2d2617;--line2:#252525;--gold:#d9b65d;--gold2:#b99643;--muted:#8d8a82;--text:#f3f1eb;--danger:#c66;--success:#8dbb72}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:14px Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,textarea,select{font:inherit}.hidden{display:none!important}
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+.side{background:var(--side);border-right:1px solid var(--line2);padding:20px 12px;position:sticky;top:0;height:100vh;overflow:auto;z-index:30}
+.brand{padding:5px 12px 25px;display:flex;align-items:center;gap:10px;color:#eee;font-weight:800;letter-spacing:.12em;font-size:13px}
+.brandmark{width:28px;height:28px;border:1px solid var(--gold2);border-radius:50%;display:grid;place-items:center;color:var(--gold);font-family:Georgia}
+.group{color:#625f57;font-size:9px;letter-spacing:.18em;text-transform:uppercase;margin:15px 8px 6px}
+.nav button{display:flex;align-items:center;gap:9px;width:100%;padding:10px 11px;border:1px solid transparent;background:transparent;color:#aaa;text-align:left;border-radius:8px;cursor:pointer;transition:.18s}
+.nav button:hover{background:#15130e;color:#eee;border-color:#241f14}.nav button.active{background:#18150d;color:#fff;border-color:#1f1a10}.nav .ico{width:14px;text-align:center;color:#777}.nav button.active .ico{color:var(--gold)}
+.main{min-width:0}.top{height:68px;border-bottom:1px solid var(--line2);display:flex;align-items:center;justify-content:space-between;padding:0 25px;position:sticky;top:0;background:rgba(9,9,9,.96);backdrop-filter:blur(10px);z-index:20}.top-left{display:flex;align-items:center;gap:12px}.menu{display:none}.title{font-weight:750;font-size:14px}.crumb{color:#69655c;font-size:11px;margin-left:5px}.top-actions{display:flex;gap:8px}
+.content{padding:25px;max-width:1500px}.page{display:none;animation:pageIn .22s ease}.page.active{display:block}@keyframes pageIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.notice{background:#15120a;border:1px solid #40371f;color:#d9c991;padding:12px 14px;border-radius:8px;margin-bottom:16px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:18px;min-height:112px}.stat .label{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.08em}.stat strong{display:block;color:var(--gold);font-size:29px;line-height:1;margin-top:18px}.stat .sub{font-size:10px;color:#666;margin-top:7px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:18px;margin-top:16px}.panel:first-child{margin-top:0}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.head h2{font-size:17px;margin:0}.head p{color:#777;margin:4px 0 0;font-size:12px}.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{background:#101010;color:#eee;border:1px solid #40371f;padding:9px 13px;border-radius:7px;cursor:pointer;transition:.15s}.btn:hover{border-color:#6b5727;background:#15130e}.btn.gold{background:var(--gold);color:#080808;border-color:var(--gold);font-weight:800}.btn.danger{border-color:#4b2727;color:#e1a1a1}.btn:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.form{display:grid;gap:13px}.field label{display:block;color:#999;font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}.field input,.field textarea,.field select{width:100%;background:#080808;color:#eee;border:1px solid #292929;padding:11px 12px;border-radius:6px;outline:none}.field input:focus,.field textarea:focus,.field select:focus{border-color:#80682d;box-shadow:0 0 0 2px #d9b65d14}.field textarea{min-height:120px;resize:vertical}.switch{display:flex;align-items:center;gap:9px;color:#bbb}.switch input{accent-color:var(--gold)}
+.table-wrap{overflow:auto;border:1px solid #202020;border-radius:7px}table{width:100%;border-collapse:collapse;min-width:650px}th,td{padding:12px;border-bottom:1px solid #222;text-align:left;font-size:12px}th{color:#777;font-size:9px;text-transform:uppercase;letter-spacing:.08em;background:#0d0d0d;position:sticky;top:0}td{color:#c9c7c0}tr:last-child td{border-bottom:0}.empty{text-align:center;padding:30px;color:#777}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}.search{flex:1;max-width:360px;background:#0b0b0b;border:1px solid #292929;color:#eee;padding:10px 12px;border-radius:7px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}.media{background:#0c0c0c;border:1px solid #242424;border-radius:8px;overflow:hidden}.media img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.media-body{padding:11px}.media-title{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.media-meta{font-size:10px;color:#777;margin:5px 0 9px}
+.status{display:inline-flex;align-items:center;gap:7px;padding:6px 9px;border-radius:999px;background:#17130a;border:1px solid #40371f;color:#cdbb86;font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:#777}.status.live{color:#d6c37f}.status.live .dot{background:#d9b65d;box-shadow:0 0 10px #d9b65d}
+.modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:100;padding:20px}.modal.open{display:flex}.modalbox{width:min(720px,96vw);max-height:90vh;overflow:auto;background:#111;border:1px solid #40371f;padding:22px;border-radius:10px;box-shadow:0 30px 100px #000}.modalbox .head{position:sticky;top:-22px;background:#111;padding-top:2px}
+.toast{position:fixed;right:20px;bottom:20px;z-index:200;background:#151515;border:1px solid #40371f;color:#eee;padding:12px 15px;border-radius:8px;box-shadow:0 15px 40px #000;transform:translateY(15px);opacity:0;pointer-events:none;transition:.2s}.toast.show{transform:none;opacity:1}.toast.error{border-color:#5a3030}.toast.success{border-color:#465b32}
+.loading{color:#777;font-size:12px;padding:18px}.errorbox{color:#e0aaaa;background:#1a1010;border:1px solid #4b2929;padding:12px;border-radius:7px}
+#tccLogin{font-family:inherit}.login-card{width:min(430px,100%);background:#111;border:1px solid #40371f;border-radius:10px;padding:30px;box-shadow:0 30px 100px #000}.login-brand{color:var(--gold);font-family:Georgia,serif;font-size:24px;margin:0 0 5px}.login-sub{color:#777;margin:0 0 22px}.login-card .field{margin-bottom:13px}.login-card .btn{width:100%;padding:12px}
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:fixed;left:0;top:0;width:250px;transform:translateX(-100%);transition:.2s;box-shadow:20px 0 60px #000}.side.open{transform:none}.menu{display:inline-grid;place-items:center;width:34px;height:34px;background:#101010;color:#ddd;border:1px solid #292929;border-radius:6px;cursor:pointer}.scrim{display:none;position:fixed;inset:0;background:#0009;z-index:25}.scrim.open{display:block}.cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.top{padding:0 13px}.content{padding:14px}.cards{grid-template-columns:1fr 1fr;gap:9px}.stat{padding:13px;min-height:92px}.stat strong{font-size:23px;margin-top:12px}.top-actions .view-label{display:none}.grid{grid-template-columns:1fr}.panel{padding:14px}.head{align-items:flex-start}.head .btn{white-space:nowrap}.crumb{display:none}}
+</style><noscript><style>#app{display:none!important}.nojs{display:block!important}</style></noscript></head>
+<body><div class="nojs" style="display:none;position:fixed;inset:0;background:#080808;color:#d9b65d;z-index:99999;padding:40px;font-family:system-ui;text-align:center">JavaScript is required for the TCC Admin Control Center.</div>
+<div class="app hidden" id="app">
+<aside class="side" id="side"><div class="brand"><span class="brandmark">✦</span><span>TCC ADMIN</span></div><div class="nav">
+<div class="group">Overview</div>
+<button data-p="dashboard" class="active"><span class="ico">⌂</span>Dashboard</button>
+<button data-p="analytics"><span class="ico">◒</span>Analytics</button>
+<div class="group">Website</div>
+<button data-p="hero"><span class="ico">✦</span>Hero &amp; About</button>
+<button data-p="news"><span class="ico">▤</span>TCC News</button>
+<button data-p="prophetic"><span class="ico">✧</span>Prophetic Room</button>
+<button data-p="live"><span class="ico">●</span>Live Control</button>
+<button data-p="events"><span class="ico">◷</span>Events</button>
+<button data-p="sermons"><span class="ico">▶</span>Sermons</button>
+<button data-p="announcements"><span class="ico">!</span>Announcements</button>
+<button data-p="ministries"><span class="ico">◈</span>Ministries</button>
+<button data-p="gallery"><span class="ico">▧</span>Gallery &amp; Media</button>
+<div class="group">People</div>
+<button data-p="prayers"><span class="ico">♡</span>Prayer Requests</button>
+<button data-p="messages"><span class="ico">✉</span>Contact Messages</button>
+<button data-p="subscribers"><span class="ico">◎</span>Subscribers</button>
+<button data-p="giving"><span class="ico">₦</span>Giving</button>
+<div class="group">System</div>
+<button data-p="settings"><span class="ico">⚙</span>Church Settings</button>
+<button data-p="admins"><span class="ico">♟</span>Administrators</button>
+</div></aside>
+<div class="scrim" id="scrim"></div>
+<main class="main">
+<header class="top"><div class="top-left"><button class="menu" id="menu">☰</button><div class="title" id="title">Dashboard</div><span class="crumb">/ TCC Control Center</span></div><div class="top-actions"><button class="btn" id="viewSite"><span class="view-label">View Site</span><span class="view-short">↗</span></button><button class="btn gold" id="logout">Sign Out</button></div></header>
+<section class="content">
+
+<div class="page active" id="dashboard">
+<div class="notice">TCC central control center — manage the website, media, broadcasts and visitor communication.</div>
+<div class="cards">
+<div class="stat"><span class="label">TCC News</span><strong id="cnews">—</strong><span class="sub">Published &amp; draft stories</span></div>
+<div class="stat"><span class="label">Events</span><strong id="cevents">—</strong><span class="sub">Upcoming and past events</span></div>
+<div class="stat"><span class="label">Prayer Requests</span><strong id="cprayers">—</strong><span class="sub">Requests received</span></div>
+<div class="stat"><span class="label">Contact Messages</span><strong id="cmessages">—</strong><span class="sub">Visitor enquiries</span></div>
+</div>
+<div class="panel"><div class="head"><div><h2>Quick Actions</h2><p>Jump directly into your most-used controls.</p></div></div><div class="actions">
+<button class="btn gold" data-go="news">Publish News</button><button class="btn" data-go="events">Create Event</button><button class="btn" data-go="gallery">Upload Photo</button><button class="btn" data-go="live">Go Live</button>
+</div></div>
+</div>
+
+<div class="page" id="analytics"><div class="head"><div><h2>Analytics</h2><p>Live counts from your TCC database.</p></div></div><div class="cards"><div class="stat"><span class="label">Visitor Messages</span><strong id="cvisitors">—</strong></div><div class="stat"><span class="label">Subscribers</span><strong id="csubs">—</strong></div><div class="stat"><span class="label">Giving Records</span><strong id="cgiving">—</strong></div><div class="stat"><span class="label">Gallery Media</span><strong id="cgallery">—</strong></div></div></div>
+
+<div class="page" id="hero"><div class="grid">
+<div class="panel"><div class="head"><div><h2>Hero</h2><p>Control the text that sits over your rotating homepage photography.</p></div></div><form class="form" id="heroForm">
+<div class="field"><label>Eyebrow</label><input name="hero_eyebrow" placeholder="Christ at the Center"></div>
+<div class="field"><label>Headline</label><input name="hero_title" placeholder="Faith that reveals Christ."></div>
+<div class="field"><label>Body</label><textarea name="hero_body"></textarea></div>
+<div class="field"><label>Slideshow interval (seconds)</label><input name="hero_interval_seconds" type="number" min="2"></div>
+<button class="btn gold">Save Hero</button></form></div>
+<div class="panel"><div class="head"><div><h2>About</h2><p>Edit your About section without touching code.</p></div></div><form class="form" id="aboutForm">
+<div class="field"><label>Label</label><input name="about_label"></div><div class="field"><label>Heading</label><input name="about_heading"></div><div class="field"><label>Text</label><textarea name="about_body"></textarea></div><div class="field"><label>Quote</label><textarea name="about_quote"></textarea></div><div class="field"><label>About image URL</label><input name="about_image_url"></div>
+<button class="btn gold">Save About</button></form></div></div>
+<div class="panel"><div class="head"><div><h2>Hero Background</h2><p>Upload images in Gallery &amp; Media and choose <b>Hero</b> as their category.</p></div><button class="btn" data-go="gallery">Manage Media</button></div></div></div>
+
+<div class="page" id="news"><div class="panel"><div class="head"><div><h2>TCC News</h2><p>Create, edit, publish and remove news stories.</p></div><button class="btn gold" data-create="news">+ New News</button></div><div class="toolbar"><input class="search" data-search="news" placeholder="Search news..."></div><div id="table-news"></div></div></div>
+<div class="page" id="prophetic"><div class="panel"><div class="head"><div><h2>Prophetic Room</h2><p>Manage prophetic words and published messages.</p></div><button class="btn gold" data-create="prophetic">+ New Word</button></div><div id="table-prophetic"></div></div></div>
+<div class="page" id="events"><div class="panel"><div class="head"><div><h2>Events</h2><p>Manage upcoming church programs and dates.</p></div><button class="btn gold" data-create="events">+ New Event</button></div><div id="table-events"></div></div></div>
+<div class="page" id="sermons"><div class="panel"><div class="head"><div><h2>Sermons</h2><p>Manage sermon titles, speakers and media links.</p></div><button class="btn gold" data-create="sermons">+ New Sermon</button></div><div id="table-sermons"></div></div></div>
+<div class="page" id="announcements"><div class="panel"><div class="head"><div><h2>Announcements</h2><p>Publish important church notices.</p></div><button class="btn gold" data-create="announcements">+ New</button></div><div id="table-announcements"></div></div></div>
+<div class="page" id="ministries"><div class="panel"><div class="head"><div><h2>Ministries</h2><p>Manage the ministries shown across the website.</p></div><button class="btn gold" data-create="ministries">+ New Ministry</button></div><div id="table-ministries"></div></div></div>
+
+<div class="page" id="live"><div class="grid"><div class="panel"><div class="head"><div><h2>Live Control</h2><p>Control whether the public site displays the live broadcast.</p></div><span id="liveBadge" class="status"><span class="dot"></span><span id="liveStatus">OFFLINE</span></span></div><form class="form" id="liveForm"><div class="field"><label>Title</label><input name="title"></div><div class="field"><label>Description</label><textarea name="description"></textarea></div><div class="field"><label>Stream URL</label><input name="stream_url"></div><div class="field"><label>Embed URL</label><input name="embed_url"></div><label class="switch"><input type="checkbox" name="is_live"> Broadcast is LIVE</label><button class="btn gold">Save Live Settings</button></form></div><div class="panel"><h2>Broadcast checklist</h2><div class="notice">Set the stream URL, enable LIVE, save, then verify the public Live tab.</div></div></div></div>
+
+<div class="page" id="gallery"><div class="panel"><div class="head"><div><h2>Gallery &amp; Media</h2><p>Upload and manage photographs for the website and Hero slideshow.</p></div><button class="btn gold" id="uploadBtn">+ Upload Photo</button></div><div id="galleryGrid" class="gallery"><div class="loading">Loading media…</div></div></div></div>
+
+<div class="page" id="prayers"><div class="panel"><div class="head"><div><h2>Prayer Requests</h2><p>Private requests received through the website.</p></div></div><div id="table-prayers"></div></div></div>
+<div class="page" id="messages"><div class="panel"><div class="head"><div><h2>Contact Messages</h2><p>Visitor enquiries and messages.</p></div></div><div id="table-messages"></div></div></div>
+<div class="page" id="subscribers"><div class="panel"><div class="head"><div><h2>Subscribers</h2><p>Newsletter and website subscribers.</p></div></div><div id="table-subscribers"></div></div></div>
+<div class="page" id="giving"><div class="panel"><div class="head"><div><h2>Giving</h2><p>Giving records available to your admin account.</p></div></div><div id="table-giving"></div></div></div>
+
+<div class="page" id="settings"><div class="grid"><div class="panel"><div class="head"><div><h2>Church Settings</h2><p>Core contact and location information.</p></div></div><form class="form" id="settingsForm"><div class="field"><label>Church Name</label><input name="church_name"></div><div class="field"><label>Address / Location</label><textarea name="location"></textarea></div><div class="field"><label>Phone</label><input name="phone"></div><div class="field"><label>Email</label><input name="email"></div><div class="field"><label>Logo URL</label><input name="logo_url"></div><div class="field"><label>Map URL</label><input name="map_url"></div><button class="btn gold">Save Settings</button></form></div><div class="panel"><div class="head"><div><h2>Social Links</h2><p>Keep your public social buttons current.</p></div></div><form class="form" id="socialForm"><div class="field"><label>Facebook</label><input name="facebook_url"></div><div class="field"><label>Instagram</label><input name="instagram_url"></div><div class="field"><label>YouTube</label><input name="youtube_url"></div><div class="field"><label>Spotify</label><input name="spotify_url"></div><button class="btn gold">Save Social Links</button></form></div></div></div>
+
+<div class="page" id="admins"><div class="panel"><div class="head"><div><h2>Administrators</h2><p>Authentication is managed by Supabase Auth.</p></div></div><div class="notice">Passwords and service-role keys are never displayed here.</div><div id="adminInfo" style="color:#aaa"></div></div></div>
+
+</section></main></div>
+<div class="modal" id="modal"><div class="modalbox"><div class="head"><div><h2 id="modalTitle">Edit</h2></div><button class="btn" id="closeModal">Close</button></div><form class="form" id="editor"></form></div></div>
+<input id="fileInput" type="file" accept="image/*" hidden><div id="toast" class="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/admin-auth.js"></script><script src="/admin/app.js"></script>
+</body></html>
