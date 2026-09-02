@@ -48,6 +48,9 @@ button,input,textarea,select{font:inherit}.hidden{display:none!important}
 <button data-p="announcements"><span class="ico">!</span>Announcements</button>
 <button data-p="ministries"><span class="ico">◈</span>Ministries</button>
 <button data-p="gallery"><span class="ico">▧</span>Gallery &amp; Media</button>
+<div class="group">Community</div>
+<button data-p="communityPosts"><span class="ico">◆</span>Community Posts</button>
+<button data-p="communityComments"><span class="ico">◆</span>Community Comments</button>
 <div class="group">People</div>
 <button data-p="prayers"><span class="ico">♡</span>Prayer Requests</button>
 <button data-p="messages"><span class="ico">✉</span>Contact Messages</button>
@@ -75,7 +78,7 @@ button,input,textarea,select{font:inherit}.hidden{display:none!important}
 </div></div>
 </div>
 
-<div class="page" id="analytics"><div class="head"><div><h2>Analytics</h2><p>Live counts from your TCC database.</p></div></div><div class="cards"><div class="stat"><span class="label">Visitor Messages</span><strong id="cvisitors">—</strong></div><div class="stat"><span class="label">Subscribers</span><strong id="csubs">—</strong></div><div class="stat"><span class="label">Giving Records</span><strong id="cgiving">—</strong></div><div class="stat"><span class="label">Gallery Media</span><strong id="cgallery">—</strong></div></div></div>
+<div class="page" id="analytics"><div class="head"><div><h2>Analytics</h2><p>Live counts from your TCC database.</p></div></div><div class="cards"><div class="stat"><span class="label">Visitor Messages</span><strong id="cvisitors">—</strong></div><div class="stat"><span class="label">Subscribers</span><strong id="csubs">—</strong></div><div class="stat"><span class="label">Giving Records</span><strong id="cgiving">—</strong></div><div class="stat"><span class="label">Gallery Media</span><strong id="cgallery">—</strong></div><div class="stat"><span class="label">Community Posts</span><strong id="ccommunity">—</strong></div></div></div>
 
 <div class="page" id="hero"><div class="grid">
 <div class="panel"><div class="head"><div><h2>Hero</h2><p>Control the text that sits over your rotating homepage photography.</p></div></div><form class="form" id="heroForm">
@@ -99,6 +102,9 @@ button,input,textarea,select{font:inherit}.hidden{display:none!important}
 <div class="page" id="live"><div class="grid"><div class="panel"><div class="head"><div><h2>Live Control</h2><p>Control whether the public site displays the live broadcast.</p></div><span id="liveBadge" class="status"><span class="dot"></span><span id="liveStatus">OFFLINE</span></span></div><form class="form" id="liveForm"><div class="field"><label>Title</label><input name="title"></div><div class="field"><label>Description</label><textarea name="description"></textarea></div><div class="field"><label>Stream URL</label><input name="stream_url"></div><div class="field"><label>Embed URL</label><input name="embed_url"></div><label class="switch"><input type="checkbox" name="is_live"> Broadcast is LIVE</label><button class="btn gold">Save Live Settings</button></form></div><div class="panel"><h2>Broadcast checklist</h2><div class="notice">Set the stream URL, enable LIVE, save, then verify the public Live tab.</div></div></div></div>
 
 <div class="page" id="gallery"><div class="panel"><div class="head"><div><h2>Gallery &amp; Media</h2><p>Upload and manage photographs for the website and Hero slideshow.</p></div><button class="btn gold" id="uploadBtn">+ Upload Photo</button></div><div id="galleryGrid" class="gallery"><div class="loading">Loading media…</div></div></div></div>
+
+<div class="page" id="communityPosts"><div class="panel"><div class="head"><div><h2>Community Posts</h2><p>Moderate member posts — check "Hidden from feed" or delete to remove content.</p></div></div><div class="toolbar"><input class="search" data-search="communityPosts" placeholder="Search posts..."></div><div id="table-communityPosts"></div></div></div>
+<div class="page" id="communityComments"><div class="panel"><div class="head"><div><h2>Community Comments</h2><p>Moderate member comments on posts.</p></div></div><div class="toolbar"><input class="search" data-search="communityComments" placeholder="Search comments..."></div><div id="table-communityComments"></div></div></div>
 
 <div class="page" id="prayers"><div class="panel"><div class="head"><div><h2>Prayer Requests</h2><p>Private requests received through the website.</p></div></div><div id="table-prayers"></div></div></div>
 <div class="page" id="messages"><div class="panel"><div class="head"><div><h2>Contact Messages</h2><p>Visitor enquiries and messages.</p></div></div><div id="table-messages"></div></div></div>

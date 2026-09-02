@@ -19,7 +19,13 @@ const configs={
  ],cols:['title','created_at']},
  ministries:{title:'Ministries',resource:'departments',fields:[
   ['name','Name','input'],['description','Description','textarea'],['icon','Icon','input'],['contact_email','Contact email','input'],['display_order','Display order','input'],['is_active','Active','check']
- ],cols:['name','display_order','is_active']}
+ ],cols:['name','display_order','is_active']},
+ communityPosts:{title:'Community Posts',resource:'community_posts',fields:[
+  ['body','Post','textarea'],['is_hidden','Hidden from feed','check']
+ ],cols:['body','is_hidden','created_at']},
+ communityComments:{title:'Community Comments',resource:'community_comments',fields:[
+  ['body','Comment','textarea'],['is_hidden','Hidden from feed','check']
+ ],cols:['body','is_hidden','created_at']}
 };
 const resourceMap={news:'news',prophetic:'prophetic_words',events:'events',sermons:'sermons',announcements:'announcements',ministries:'departments',prayers:'prayer_requests',messages:'visitors',subscribers:'subscribers',giving:'giving_records'};
 let cache={};
@@ -58,7 +64,7 @@ function go(p){
  if(!$('#'+p))p='dashboard';
  $$('.page').forEach(x=>x.classList.remove('active'));$('#'+p).classList.add('active');
  $$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.p===p));
- const names={dashboard:'Dashboard',analytics:'Analytics',hero:'Hero & About',news:'TCC News',prophetic:'Prophetic Room',live:'Live Control',events:'Events',sermons:'Sermons',announcements:'Announcements',ministries:'Ministries',gallery:'Gallery & Media',prayers:'Prayer Requests',messages:'Contact Messages',subscribers:'Subscribers',giving:'Giving',settings:'Church Settings',admins:'Administrators'};
+ const names={dashboard:'Dashboard',analytics:'Analytics',hero:'Hero & About',news:'TCC News',prophetic:'Prophetic Room',live:'Live Control',events:'Events',sermons:'Sermons',announcements:'Announcements',ministries:'Ministries',gallery:'Gallery & Media',communityPosts:'Community Posts',communityComments:'Community Comments',prayers:'Prayer Requests',messages:'Contact Messages',subscribers:'Subscribers',giving:'Giving',settings:'Church Settings',admins:'Administrators'};
  $('#title').textContent=names[p]||p;
  history.replaceState(null,'','#'+p);
  load(p);
@@ -156,7 +162,7 @@ async function dashboard(){
  }
 }
 async function analytics(){
- for(const [id,r] of [['cvisitors','visitors'],['csubs','subscribers'],['cgiving','giving_records'],['cgallery','gallery']]){
+ for(const [id,r] of [['cvisitors','visitors'],['csubs','subscribers'],['cgiving','giving_records'],['cgallery','gallery'],['ccommunity','community_posts']]){
   try{$('#'+id).textContent=(await api(r)).items?.length??0}catch(_){$('#'+id).textContent='—'}
  }
 }

@@ -18,6 +18,7 @@
     { "source": "/api/health", "destination": "/api/system?type=health" },
     { "source": "/api/config", "destination": "/api/system?type=config" },
     { "source": "/api/auth-status", "destination": "/api/system?type=auth-status" },
+    { "source": "/community", "destination": "/community.html" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/admin/", "destination": "/admin/index.html" },
     { "source": "/about", "destination": "/index.html" },

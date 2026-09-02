@@ -13,24 +13,36 @@ const tables = {
   sermons: 'sermons', events: 'events', announcements: 'announcements',
   prayer: 'prayer_requests', prayer_requests: 'prayer_requests', visitors: 'visitors', subscribers: 'subscribers',
   giving: 'giving_records', giving_records: 'giving_records', settings: 'church_settings',
-  gallery: 'gallery_photos', departments: 'departments', news: 'news', prophetic_words: 'prophetic_words', live_status: 'live_status'
+  gallery: 'gallery_photos', departments: 'departments', news: 'news', prophetic_words: 'prophetic_words', live_status: 'live_status',
+  community_posts: 'community_posts', community_comments: 'community_comments', profiles: 'profiles'
 };
 
-async function requireAdmin(req) {
+function isAdminEmail(email) {
+  const allowed = String(process.env.ADMIN_EMAILS || '')
+    .split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  return allowed.includes(String(email || '').toLowerCase());
+}
+
+// Resolves the Supabase session tied to the request's bearer token, without
+// requiring the caller to be a listed admin. Used by the community endpoints
+// so any signed-up member can post, comment and like.
+async function requireUser(req) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-  if (!token) throw Object.assign(new Error('Authentication required'), { status: 401 });
+  if (!token) throw Object.assign(new Error('Please sign in to continue'), { status: 401 });
 
   const client = sb();
   const { data, error } = await client.auth.getUser(token);
-  if (error || !data.user) throw Object.assign(new Error('Invalid or expired session'), { status: 401 });
-
-  const allowed = String(process.env.ADMIN_EMAILS || '')
-    .split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
-  if (!allowed.includes(String(data.user.email || '').toLowerCase())) {
-    throw Object.assign(new Error('You are not authorized to access the admin dashboard'), { status: 403 });
-  }
+  if (error || !data.user) throw Object.assign(new Error('Your session has expired. Please sign in again'), { status: 401 });
   return data.user;
 }
 
-module.exports = { sb, tables, requireAdmin };
+async function requireAdmin(req) {
+  const user = await requireUser(req);
+  if (!isAdminEmail(user.email)) {
+    throw Object.assign(new Error('You are not authorized to access the admin dashboard'), { status: 403 });
+  }
+  return user;
+}
+
+module.exports = { sb, tables, requireAdmin, requireUser, isAdminEmail };
