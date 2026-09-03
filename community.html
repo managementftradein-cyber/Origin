@@ -158,7 +158,12 @@ body{overflow-x:hidden}
       <button class="tcc-btn" style="width:100%">Sign In</button>
       <p id="loginMsg" class="tcc-msg"></p>
     </form>
-    <form id="signupForm" class="tcc-authform">
+    <div id="signupGate" class="tcc-authform">
+      <p style="margin:0 0 14px;color:#a69d8c;font-size:13px;line-height:1.6">Joining the community requires an invitation link from a department head. Ask the head of the department you'd like to join for your link, then open it here.</p>
+      <p id="inviteStatusMsg" class="tcc-msg"></p>
+    </div>
+    <form id="signupForm" class="tcc-authform" style="display:none">
+      <p id="signupDeptLabel" style="margin:0 0 14px;color:#c9a45c;font-size:13px"></p>
       <input name="email" type="email" placeholder="Email" autocomplete="username" required>
       <input name="password" type="password" placeholder="Password (min. 6 characters)" autocomplete="new-password" required>
       <button class="tcc-btn" style="width:100%">Create Account</button>
@@ -318,18 +323,39 @@ function bumpCount(postId,attr,n){
  if(btn)btn.querySelector('span').textContent=n;
 }
 
+let inviteToken=null;
+async function checkInvite(){
+ const params=new URLSearchParams(location.search);
+ const token=params.get('invite');
+ if(!token){$('#inviteStatusMsg').textContent='No invitation link detected. Open the link your department head sent you to continue.';return}
+ $('#inviteStatusMsg').textContent='Checking your invitation…';
+ try{
+  const r=await fetch(`/api/roles?type=validate-invite&token=${encodeURIComponent(token)}`);
+  const d=await r.json();
+  if(!d.valid){$('#inviteStatusMsg').textContent=d.error||'This invitation link is no longer valid.';return}
+  inviteToken=token;
+  $('#signupGate').style.display='none';
+  $('#signupForm').style.display='';
+  $('#signupDeptLabel').textContent=`You're joining: ${d.department_name}`;
+ }catch(_){$('#inviteStatusMsg').textContent='Could not verify your invitation link. Please try again.'}
+}
+
 function bindAuthTabs(){
- $('#tabLogin').onclick=()=>{$('#tabLogin').classList.add('active');$('#tabSignup').classList.remove('active');$('#loginForm').classList.add('active');$('#signupForm').classList.remove('active')};
- $('#tabSignup').onclick=()=>{$('#tabSignup').classList.add('active');$('#tabLogin').classList.remove('active');$('#signupForm').classList.add('active');$('#loginForm').classList.remove('active')};
+ $('#tabLogin').onclick=()=>{$('#tabLogin').classList.add('active');$('#tabSignup').classList.remove('active');$('#loginForm').classList.add('active');$('#signupGate').classList.remove('active');$('#signupForm').classList.remove('active')};
+ $('#tabSignup').onclick=()=>{$('#tabSignup').classList.add('active');$('#tabLogin').classList.remove('active');$('#loginForm').classList.remove('active');$('#signupGate').classList.remove('active');$('#signupForm').classList.remove('active');(inviteToken?$('#signupForm'):$('#signupGate')).classList.add('active')};
  $('#loginForm').onsubmit=async e=>{
   e.preventDefault();const f=e.currentTarget,msg=$('#loginMsg'),btn=f.querySelector('button');btn.disabled=true;msg.className='tcc-msg';msg.textContent='Signing in…';
   try{await window.TCCUser.login(f.email.value,f.password.value);await afterAuth()}catch(err){msg.textContent=err.message}finally{btn.disabled=false}
  };
  $('#signupForm').onsubmit=async e=>{
-  e.preventDefault();const f=e.currentTarget,msg=$('#signupMsg'),btn=f.querySelector('button');btn.disabled=true;msg.className='tcc-msg';msg.textContent='Creating your account…';
+  e.preventDefault();
+  if(!inviteToken){$('#signupMsg').textContent='Your invitation link is missing or invalid.';return}
+  const f=e.currentTarget,msg=$('#signupMsg'),btn=f.querySelector('button');btn.disabled=true;msg.className='tcc-msg';msg.textContent='Creating your account…';
   try{
-   await window.TCCUser.signup(f.email.value,f.password.value);
-   if(!window.TCCUser.user){msg.className='tcc-msg ok';msg.textContent='Account created. Check your email to confirm, then sign in.';btn.disabled=false;return}
+   const r=await fetch('/api/roles?type=apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:inviteToken,email:f.email.value,password:f.password.value})});
+   const d=await r.json();
+   if(!r.ok) throw Error(d.error||'Could not create your account.');
+   await window.TCCUser.login(f.email.value,f.password.value);
    await afterAuth();
   }catch(err){msg.textContent=err.message;btn.disabled=false}
  };
@@ -367,16 +393,33 @@ function bindAuthTabs(){
 }
 
 async function afterAuth(){
- try{profile=await api('/api/community?type=profile','GET',null,true)}catch(_){profile=null}
+ try{profile=await api('/api/community?type=profile','GET',null,true)}
+ catch(err){
+  profile=null;
+  if(/suspended/i.test(err.message||'')){
+   await window.TCCUser.logout();
+   $('#loginMsg').textContent='Your account has been suspended. Contact your department head or the church office for help.';
+  }
+ }
  renderAuthState();
  loadFeed();
 }
 
 (async function boot(){
  bindAuthTabs();
+ checkInvite();
  try{
   await window.TCCUser.init();
-  if(window.TCCUser.user){try{profile=await api('/api/community?type=profile','GET',null,true)}catch(_){profile=null}}
+  if(window.TCCUser.user){
+   try{profile=await api('/api/community?type=profile','GET',null,true)}
+   catch(err){
+    profile=null;
+    if(/suspended/i.test(err.message||'')){
+     await window.TCCUser.logout();
+     $('#loginMsg').textContent='Your account has been suspended. Contact your department head or the church office for help.';
+    }
+   }
+  }
  }catch(e){console.warn(e)}
  renderAuthState();
  loadFeed();
@@ -391,7 +434,7 @@ async function afterAuth(){
   <a href="news.html"><span class="more-icon">◈</span><span>TCC News</span></a>
   <a href="prophetic-room.html"><span class="more-icon">✦</span><span>Prophetic Room</span></a>
   <a href="live.html"><span class="more-icon">●</span><span>Live</span></a>
-  <a href="#map"><span class="more-icon">⌖</span><span>Find Us / Directions</span></a>
+  <a href="/#map"><span class="more-icon">⌖</span><span>Find Us / Directions</span></a>
 </div>
 <nav class="tcc-mobile-appbar" aria-label="Mobile navigation">
   <a href="index.html"><span class="icon">⌂</span><span>Home</span></a>

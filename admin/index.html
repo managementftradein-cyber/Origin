@@ -52,6 +52,7 @@ button,input,textarea,select{font:inherit}.hidden{display:none!important}
 <button data-p="communityPosts"><span class="ico">◆</span>Community Posts</button>
 <button data-p="communityComments"><span class="ico">◆</span>Community Comments</button>
 <div class="group">People</div>
+<button data-p="roles"><span class="ico">♟</span>Community Roles</button>
 <button data-p="prayers"><span class="ico">♡</span>Prayer Requests</button>
 <button data-p="messages"><span class="ico">✉</span>Contact Messages</button>
 <button data-p="subscribers"><span class="ico">◎</span>Subscribers</button>
@@ -105,6 +106,26 @@ button,input,textarea,select{font:inherit}.hidden{display:none!important}
 
 <div class="page" id="communityPosts"><div class="panel"><div class="head"><div><h2>Community Posts</h2><p>Moderate member posts — check "Hidden from feed" or delete to remove content.</p></div></div><div class="toolbar"><input class="search" data-search="communityPosts" placeholder="Search posts..."></div><div id="table-communityPosts"></div></div></div>
 <div class="page" id="communityComments"><div class="panel"><div class="head"><div><h2>Community Comments</h2><p>Moderate member comments on posts.</p></div></div><div class="toolbar"><input class="search" data-search="communityComments" placeholder="Search comments..."></div><div id="table-communityComments"></div></div></div>
+
+<div class="page" id="roles">
+<div class="notice">As Head Admin you control the whole social platform: promote members to Department Head (they can then onboard and suspend members within their own department only), suspend anyone directly, and issue invite links for any department. Applicants can only join via a one-time invite link — there is no open signup.</div>
+
+<div class="panel"><div class="head"><div><h2>Department Heads</h2><p>Members with authority over their own department's roster.</p></div></div><div id="table-deptHeads"><div class="loading">Loading…</div></div></div>
+
+<div class="panel"><div class="head"><div><h2>Generate Invite Link</h2><p>Create a one-time application link for any department.</p></div></div>
+<form class="form" id="roleInviteForm">
+<div class="field"><label>Department</label><select name="department_id" id="roleInviteDept"></select></div>
+<div class="field"><label>Applicant name (optional)</label><input name="applicant_name"></div>
+<div class="field"><label>Applicant email (optional)</label><input name="applicant_email" type="email"></div>
+<button class="btn gold" type="submit">Generate Link</button>
+</form>
+<p id="roleInviteMsg" style="font-size:12px;color:#999;margin-top:12px"></p>
+</div>
+
+<div class="panel"><div class="head"><div><h2>All Invite Links</h2><p>Every invite generated across every department.</p></div></div><div id="table-allInvites"><div class="loading">Loading…</div></div></div>
+
+<div class="panel"><div class="head"><div><h2>All Members</h2><p>Promote to Department Head, remove head status, or suspend/reinstate anyone.</p></div></div><div class="toolbar"><input class="search" data-search="allMembers" placeholder="Search members..."></div><div id="table-allMembers"><div class="loading">Loading…</div></div></div>
+</div>
 
 <div class="page" id="prayers"><div class="panel"><div class="head"><div><h2>Prayer Requests</h2><p>Private requests received through the website.</p></div></div><div id="table-prayers"></div></div></div>
 <div class="page" id="messages"><div class="panel"><div class="head"><div><h2>Contact Messages</h2><p>Visitor enquiries and messages.</p></div></div><div id="table-messages"></div></div></div>

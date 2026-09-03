@@ -34,6 +34,19 @@ async function requireUser(req) {
   const client = sb();
   const { data, error } = await client.auth.getUser(token);
   if (error || !data.user) throw Object.assign(new Error('Your session has expired. Please sign in again'), { status: 401 });
+
+  // Belt-and-braces: a suspended member's existing session token may still
+  // be technically valid for a short window even after their Supabase Auth
+  // account is banned, so also block them at the profile level.
+  try {
+    const prof = await client.from('profiles').select('is_suspended').eq('id', data.user.id).maybeSingle();
+    if (!prof.error && prof.data && prof.data.is_suspended) {
+      throw Object.assign(new Error('Your account has been suspended.'), { status: 403 });
+    }
+  } catch (e) {
+    if (e && e.status === 403) throw e;
+  }
+
   return data.user;
 }
 

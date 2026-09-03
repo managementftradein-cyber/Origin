@@ -64,7 +64,7 @@ function go(p){
  if(!$('#'+p))p='dashboard';
  $$('.page').forEach(x=>x.classList.remove('active'));$('#'+p).classList.add('active');
  $$('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.p===p));
- const names={dashboard:'Dashboard',analytics:'Analytics',hero:'Hero & About',news:'TCC News',prophetic:'Prophetic Room',live:'Live Control',events:'Events',sermons:'Sermons',announcements:'Announcements',ministries:'Ministries',gallery:'Gallery & Media',communityPosts:'Community Posts',communityComments:'Community Comments',prayers:'Prayer Requests',messages:'Contact Messages',subscribers:'Subscribers',giving:'Giving',settings:'Church Settings',admins:'Administrators'};
+ const names={dashboard:'Dashboard',analytics:'Analytics',hero:'Hero & About',news:'TCC News',prophetic:'Prophetic Room',live:'Live Control',events:'Events',sermons:'Sermons',announcements:'Announcements',ministries:'Ministries',gallery:'Gallery & Media',communityPosts:'Community Posts',communityComments:'Community Comments',roles:'Community Roles',prayers:'Prayer Requests',messages:'Contact Messages',subscribers:'Subscribers',giving:'Giving',settings:'Church Settings',admins:'Administrators'};
  $('#title').textContent=names[p]||p;
  history.replaceState(null,'','#'+p);
  load(p);
@@ -173,8 +173,99 @@ async function loadSettings(){
   ['facebook_url','instagram_url','youtube_url','spotify_url'].forEach(n=>{const x=$('#socialForm').elements[n];if(x)x.value=s[n]??''});
  }catch(e){toast(e.message,'error')}
 }
+async function rolesApi(type,method='GET',body=null){
+ const token=await TCCAdmin.token();
+ if(!token) throw Error('Your admin session has expired. Please sign in again.');
+ const opt={method,headers:{Authorization:`Bearer ${token}`}};
+ if(body){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body)}
+ const r=await fetch(`/api/roles?type=${encodeURIComponent(type)}`,opt);
+ let d={};try{d=await r.json()}catch(_){}
+ if(!r.ok)throw Error(d.error||`Request failed (${r.status})`);
+ return d;
+}
+const fmtDate=iso=>{if(!iso)return'—';try{return new Date(iso).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})}catch(_){return'—'}};
+let allDepartments=[],allMembersCache=[];
+
+async function loadDeptHeads(){
+ const el=$('#table-deptHeads');
+ try{
+  const d=await rolesApi('department-heads');const rows=d.items||[];
+  if(!rows.length){el.innerHTML='<div class="empty">No department heads assigned yet.</div>';return}
+  el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Actions</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.display_name||'—')}</td><td>${esc(r.email||'—')}</td><td>${esc(r.department_name||'—')}</td><td><button class="btn danger" data-removehead="${esc(r.id)}">Remove Head Status</button></td></tr>`).join('')}</tbody></table></div>`;
+  $$('[data-removehead]').forEach(b=>b.onclick=async()=>{
+   if(!confirm('Remove department head status from this member?'))return;
+   try{await rolesApi('remove-head','POST',{profile_id:b.dataset.removehead});toast('Head status removed');await loadRoles()}catch(e){toast(e.message,'error')}
+  });
+ }catch(e){el.innerHTML=`<div class="errorbox">${esc(e.message)}</div>`}
+}
+
+async function loadAllInvites(){
+ const el=$('#table-allInvites');
+ try{
+  const inv=await rolesApi('invites');const rows=inv.items||[];
+  if(!rows.length){el.innerHTML='<div class="empty">No invite links generated yet.</div>';return}
+  el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Department</th><th>For</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.department_name||'—')}</td><td>${esc(r.applicant_name||r.applicant_email||'—')}</td><td>${esc(r.status)}</td><td>${fmtDate(r.created_at)}</td><td>${r.status==='pending'?`<button class="btn" data-copyinv="${esc(r.token)}">Copy Link</button> <button class="btn danger" data-revokeinv="${esc(r.id)}">Revoke</button>`:''}</td></tr>`).join('')}</tbody></table></div>`;
+  $$('[data-copyinv]').forEach(b=>b.onclick=async()=>{
+   const url=`${location.origin}/community.html?invite=${b.dataset.copyinv}`;
+   try{await navigator.clipboard.writeText(url);toast('Invite link copied')}catch(_){prompt('Copy this invite link:',url)}
+  });
+  $$('[data-revokeinv]').forEach(b=>b.onclick=async()=>{
+   if(!confirm('Revoke this invite link?'))return;
+   try{await rolesApi('revoke-invite','POST',{id:b.dataset.revokeinv});toast('Invite revoked');await loadAllInvites()}catch(e){toast(e.message,'error')}
+  });
+ }catch(e){el.innerHTML=`<div class="errorbox">${esc(e.message)}</div>`}
+}
+
+function renderAllMembers(rows,filter=''){
+ const el=$('#table-allMembers');
+ const q=filter.trim().toLowerCase();
+ const filtered=q?rows.filter(r=>[r.display_name,r.email,r.department_name,r.role].some(v=>String(v??'').toLowerCase().includes(q))):rows;
+ if(!filtered.length){el.innerHTML='<div class="empty">'+(rows.length?'No members match your search.':'No members yet.')+'</div>';return}
+ const deptOptions=allDepartments.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
+ el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Actions</th></tr></thead><tbody>${filtered.map(r=>`<tr>
+  <td>${esc(r.display_name||'—')}</td><td>${esc(r.email||'—')}</td>
+  <td>${r.role==='department_head'?'Department Head':'Member'}</td>
+  <td>${esc(r.department_name||'—')}</td>
+  <td>${r.is_suspended?'Suspended':'Active'}</td>
+  <td style="white-space:nowrap">
+   ${r.role!=='department_head'?`<select data-makehead="${esc(r.id)}" style="background:#080808;color:#eee;border:1px solid #292929;border-radius:6px;padding:6px"><option value="">Make head of…</option>${deptOptions}</select>`:''}
+   ${r.is_suspended?`<button class="btn" data-unsuspend="${esc(r.id)}">Reinstate</button>`:`<button class="btn danger" data-suspend="${esc(r.id)}">Suspend</button>`}
+  </td>
+ </tr>`).join('')}</tbody></table></div>`;
+ $$('[data-makehead]').forEach(s=>s.onchange=async()=>{
+  if(!s.value)return;
+  try{await rolesApi('assign-head','POST',{profile_id:s.dataset.makehead,department_id:s.value});toast('Assigned as department head');await loadRoles()}catch(e){toast(e.message,'error');s.value=''}
+ });
+ $$('[data-suspend]').forEach(b=>b.onclick=async()=>{
+  if(!confirm('Suspend this member? They will be blocked from signing in to the community platform.'))return;
+  try{await rolesApi('suspend','POST',{profile_id:b.dataset.suspend});toast('Member suspended');await loadRoles()}catch(e){toast(e.message,'error')}
+ });
+ $$('[data-unsuspend]').forEach(b=>b.onclick=async()=>{
+  try{await rolesApi('unsuspend','POST',{profile_id:b.dataset.unsuspend});toast('Member reinstated');await loadRoles()}catch(e){toast(e.message,'error')}
+ });
+}
+
+async function loadAllMembers(){
+ const el=$('#table-allMembers');
+ try{
+  const d=await rolesApi('all-members');allMembersCache=d.items||[];
+  renderAllMembers(allMembersCache);
+ }catch(e){el.innerHTML=`<div class="errorbox">${esc(e.message)}</div>`}
+}
+
+async function loadRoles(){
+ try{
+  if(!allDepartments.length){const d=await api('departments');allDepartments=d.items||[];
+   $('#roleInviteDept').innerHTML=allDepartments.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
+  }
+ }catch(e){/* department list best-effort */}
+ loadDeptHeads();loadAllInvites();loadAllMembers();
+ const search=$('[data-search="allMembers"]');
+ if(search)search.oninput=()=>renderAllMembers(allMembersCache,search.value);
+}
+
 function load(p){
- if(configs[p])loadContent(p);else if(p==='dashboard')dashboard();else if(p==='analytics')analytics();else if(p==='hero')loadHero();else if(p==='live')loadLive();else if(p==='gallery')loadGallery();else if(['prayers','messages','subscribers','giving'].includes(p))privatePage(p);else if(p==='settings')loadSettings();else if(p==='admins')$('#adminInfo').textContent=TCCAdmin.user?`Signed in as ${TCCAdmin.user.email}`:'Not signed in';
+ if(configs[p])loadContent(p);else if(p==='dashboard')dashboard();else if(p==='analytics')analytics();else if(p==='hero')loadHero();else if(p==='live')loadLive();else if(p==='gallery')loadGallery();else if(p==='roles')loadRoles();else if(['prayers','messages','subscribers','giving'].includes(p))privatePage(p);else if(p==='settings')loadSettings();else if(p==='admins')$('#adminInfo').textContent=TCCAdmin.user?`Signed in as ${TCCAdmin.user.email}`:'Not signed in';
 }
 function bind(){
  $$('[data-p]').forEach(b=>b.onclick=()=>go(b.dataset.p));
@@ -192,6 +283,17 @@ function bind(){
  $('#settingsForm')?.addEventListener('submit',e=>{e.preventDefault();saveSettings(e.target)});
  $('#socialForm')?.addEventListener('submit',e=>{e.preventDefault();saveSettings(e.target)});
  $('#liveForm')?.addEventListener('submit',async e=>{e.preventDefault();const data={};[...e.currentTarget.elements].forEach(x=>{if(x.name)data[x.name]=x.type==='checkbox'?x.checked:x.value});try{await api('live_status','POST',{data});toast('Live settings saved');await loadLive()}catch(x){toast(x.message,'error')}});
+ $('#roleInviteForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button'),msg=$('#roleInviteMsg');
+  if(!f.department_id.value){msg.textContent='Choose a department first.';return}
+  btn.disabled=true;msg.textContent='Generating…';
+  try{
+   const d=await rolesApi('create-invite','POST',{department_id:f.department_id.value,applicant_name:f.applicant_name.value,applicant_email:f.applicant_email.value});
+   msg.innerHTML=`Link ready: <b>${esc(d.invite_url)}</b>`;
+   try{await navigator.clipboard.writeText(d.invite_url);toast('Invite link created & copied')}catch(_){toast('Invite link created')}
+   f.applicant_name.value='';f.applicant_email.value='';await loadAllInvites();
+  }catch(err){msg.textContent=err.message}finally{btn.disabled=false}
+ });
  $('#uploadBtn')?.addEventListener('click',()=>$('#fileInput').click());
  $('#fileInput')?.addEventListener('change',e=>{if(e.target.files[0])upload(e.target.files[0]);e.target.value=''});
 }

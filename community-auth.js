@@ -33,6 +33,7 @@ window.TCCUser = {
       const m = String(r.error.message || '');
       if (/invalid login credentials/i.test(m)) throw Error('Incorrect email or password.');
       if (/email not confirmed/i.test(m)) throw Error('Please confirm your email address first — check your inbox.');
+      if (/banned|suspended/i.test(m)) throw Error('Your account has been suspended. Contact your department head or the church office for help.');
       throw Error(m || 'Sign-in failed.');
     }
     const s = await this.client.auth.getSession();

@@ -21,6 +21,8 @@
     { "source": "/community", "destination": "/community.html" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/admin/", "destination": "/admin/index.html" },
+    { "source": "/dept-admin", "destination": "/dept-admin/index.html" },
+    { "source": "/dept-admin/", "destination": "/dept-admin/index.html" },
     { "source": "/about", "destination": "/index.html" },
     { "source": "/programs", "destination": "/index.html" },
     { "source": "/partnership", "destination": "/index.html" },
