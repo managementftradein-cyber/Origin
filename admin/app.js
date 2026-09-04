@@ -52,7 +52,7 @@ function showLogin(message=''){
  x.innerHTML=`<div class="login-card"><h1 class="login-brand">TCC ADMIN</h1><p class="login-sub">Sign in to the Christocentric Church control center.</p>
  <form id="tccLoginForm"><div class="field"><label>Email</label><input name="email" type="email" required autocomplete="username" placeholder="Admin email"></div>
  <div class="field"><label>Password</label><input name="password" type="password" required autocomplete="current-password" placeholder="Password"></div>
- <button class="btn red" type="submit">SIGN IN</button><div id="tccLoginMsg" style="color:#d9c991;margin-top:12px;line-height:1.5"></div></form></div>`;
+ <button class="btn gold" type="submit">SIGN IN</button><div id="tccLoginMsg" style="color:#d9c991;margin-top:12px;line-height:1.5"></div></form></div>`;
  document.body.appendChild(x);
  $('#tccLoginForm').onsubmit=async e=>{
   e.preventDefault();const f=e.currentTarget,b=f.querySelector('button');b.disabled=true;b.textContent='SIGNING IN…';
@@ -98,7 +98,7 @@ function openEditor(page,id,row={}){
   if(type==='check')return `<label class="switch"><input type="checkbox" name="${n}" ${v?'checked':''}> ${esc(label)}</label>`;
   const inputType=n==='date'?'date':'text';
   return `<div class="field"><label>${esc(label)}</label><input name="${n}" type="${inputType}" value="${esc(v)}"></div>`;
- }).join('')+'<button class="btn red" type="submit">Save Changes</button>';
+ }).join('')+'<button class="btn gold" type="submit">Save Changes</button>';
  m.classList.add('open');
  f.onsubmit=async e=>{
   e.preventDefault();const data={};
@@ -161,7 +161,7 @@ function openGivingAccountEditor(row={}){
  const m=$('#modal'),f=$('#editor'); if(!m||!f)return;
  $('#modalTitle').textContent=row.id?'Edit Offering Account':'Add Offering Account';
  const fields=[['label','Display label','text'],['bank_name','Bank name','text'],['account_name','Account name','text'],['account_number','Account number','text'],['sort_code','Sort code / branch code','text'],['currency','Currency','text'],['instructions','Instructions','textarea'],['display_order','Display order','number']];
- f.innerHTML=fields.map(([n,l,t])=>t==='textarea'?`<div class="field"><label>${l}</label><textarea name="${n}">${esc(row[n]??'')}</textarea></div>`:`<div class="field"><label>${l}</label><input name="${n}" type="${t}" value="${esc(row[n]??(n==='currency'?'NGN':n==='display_order'?'0':''))}" ${n==='bank_name'||n==='account_name'||n==='account_number'?'required':''}></div>`).join('')+`<label class="switch"><input type="checkbox" name="is_active" ${(!row.id || row.is_active !== false)?'checked':''}> Publish this account on the public Give page</label><button class="btn red" type="submit">Save Account</button>`;
+ f.innerHTML=fields.map(([n,l,t])=>t==='textarea'?`<div class="field"><label>${l}</label><textarea name="${n}">${esc(row[n]??'')}</textarea></div>`:`<div class="field"><label>${l}</label><input name="${n}" type="${t}" value="${esc(row[n]??(n==='currency'?'NGN':n==='display_order'?'0':''))}" ${n==='bank_name'||n==='account_name'||n==='account_number'?'required':''}></div>`).join('')+`<label class="switch"><input type="checkbox" name="is_active" ${(!row.id || row.is_active !== false)?'checked':''}> Publish this account on the public Give page</label><button class="btn gold" type="submit">Save Account</button>`;
  m.classList.add('open');
  f.onsubmit=async e=>{e.preventDefault();const data={};fields.forEach(([n])=>{const x=f.elements[n];if(x)data[n]=x.type==='number'?Number(x.value||0):x.value});data.is_active=f.elements.is_active.checked;try{await api('giving_accounts',row.id?'PATCH':'POST',row.id?{id:row.id,data}:{data});m.classList.remove('open');toast(row.id?'Account updated':'Account published');await loadGivingAccounts()}catch(err){toast(err.message,'error')}};
 }

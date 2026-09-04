@@ -3,20 +3,20 @@
  * across the whole site (buttons, links, borders, glows, highlights).
  *
  * How it works:
- * - Hue advances by the red angle (~137.5°) on every click, which
+ * - Hue advances by the golden angle (~137.5°) on every click, which
  *   guarantees the hue never repeats and stays evenly spread around
  *   the color wheel no matter how many times you click.
  * - Saturation/lightness get a small randomized nudge each click too,
- *   so even the *shade* of red/color is unique every time.
- * - Colors are written into CSS custom properties (--tcc-red,
- *   --tcc-red-rgb, and on the homepage --red/--red-rgb/--red2),
+ *   so even the *shade* of gold/color is unique every time.
+ * - Colors are written into CSS custom properties (--tcc-gold,
+ *   --tcc-gold-rgb, and on the homepage --gold/--gold-rgb/--gold2),
  *   which every button, link, border and glow on the site already
  *   reads from — so one click updates the whole page instantly.
  */
 (function () {
-  var RED_ANGLE = 137.508;
+  var GOLDEN_ANGLE = 137.508;
 
-  // Start near the original brand red (~amber, hue 40) so first
+  // Start near the original brand gold (~amber, hue 40) so first
   // load still looks like the site's normal palette.
   var state = {
     hue: 40 + Math.random() * 10
@@ -55,9 +55,9 @@
   }
 
   function nextColor() {
-    // Advance hue by the red angle — mathematically guarantees a
+    // Advance hue by the golden angle — mathematically guarantees a
     // fresh, well-distributed hue every single click.
-    state.hue = (state.hue + RED_ANGLE) % 360;
+    state.hue = (state.hue + GOLDEN_ANGLE) % 360;
 
     // Small per-click randomization so the exact shade is also unique.
     var sat = 55 + Math.random() * 30; // 55–85%
@@ -80,13 +80,13 @@
 
     // Shared site-wide accent (nav, meta labels, borders, glows on
     // community/live/news/prophetic-room + homepage header/footer bits)
-    root.setProperty('--tcc-red', c.hex);
-    root.setProperty('--tcc-red-rgb', c.rgb);
+    root.setProperty('--tcc-gold', c.hex);
+    root.setProperty('--tcc-gold-rgb', c.rgb);
 
     // Homepage-specific accent variables (hero, buttons, dividers)
-    root.setProperty('--red', c.hex);
-    root.setProperty('--red-rgb', c.rgb);
-    root.setProperty('--red2', c.tintHex);
+    root.setProperty('--gold', c.hex);
+    root.setProperty('--gold-rgb', c.rgb);
+    root.setProperty('--gold2', c.tintHex);
   }
 
   document.addEventListener('click', applyColor);
