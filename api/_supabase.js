@@ -73,11 +73,11 @@ function clientIp(req) {
 async function checkRateLimit(db, key, limit, windowSeconds) {
   try {
     const { data, error } = await db.rpc('check_rate_limit', { p_key: key, p_limit: limit, p_window_seconds: windowSeconds });
-    if (error) { console.warn('Rate limit check failed (allowing request):', error.message); return true; }
+    if (error) { console.error('Rate limit check failed:', error.message); return false; }
     return data !== false;
   } catch (e) {
-    console.warn('Rate limit check error (allowing request):', e.message);
-    return true;
+    console.error('Rate limit check error:', e.message);
+    return false;
   }
 }
 

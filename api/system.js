@@ -4,14 +4,13 @@
 const { sb, requireAdmin } = require('./_supabase');
 
 function handleHealth() {
-  const checks = {
-    supabase_url: !!process.env.SUPABASE_URL,
-    public_key: !!(process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY),
-    service_role_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    admin_emails: !!process.env.ADMIN_EMAILS
-  };
-  const ok = Object.values(checks).every(Boolean);
-  return { status: ok ? 200 : 500, body: { ok, checks } };
+  // Public health checks should not reveal which privileged secrets/configuration
+  // values exist. Keep this intentionally generic.
+  const ok = !!process.env.SUPABASE_URL &&
+    !!(process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY) &&
+    !!process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    !!process.env.ADMIN_EMAILS;
+  return { status: ok ? 200 : 500, body: { ok } };
 }
 
 function handleConfig() {
@@ -22,15 +21,11 @@ function handleConfig() {
   return { status: 200, body: { url: process.env.SUPABASE_URL, anonKey: key } };
 }
 
-function handleAuthStatus(req) {
-  const email = String(req.query.email || '').trim().toLowerCase();
-  const allowed = String(process.env.ADMIN_EMAILS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
-  const result = {
-    admin_email_configured: allowed.length > 0,
-    email_supplied: !!email,
-    email_is_listed: email ? allowed.includes(email) : false
-  };
-  return { status: 200, body: result };
+function handleAuthStatus() {
+  // This endpoint used to disclose whether an arbitrary email was configured
+  // as an admin. It is retained only for compatibility and returns no email
+  // enumeration result.
+  return { status: 200, body: { ok: true } };
 }
 
 // Head-admin-only: list recent automated backups (created by

@@ -96,10 +96,15 @@ alter table public.community_comments enable row level security;
 alter table public.community_likes enable row level security;
 
 drop policy if exists "public read profiles" on public.profiles;
-create policy "public read profiles" on public.profiles for select to anon, authenticated using (true);
-
+drop policy if exists "users read own profile" on public.profiles;
+create policy "users read own profile" on public.profiles for select to authenticated using (auth.uid() = id);
 drop policy if exists "users manage own profile" on public.profiles;
-create policy "users manage own profile" on public.profiles for all to authenticated using (auth.uid() = id) with check (auth.uid() = id);
+drop policy if exists "users insert own profile" on public.profiles;
+create policy "users insert own profile" on public.profiles for insert to authenticated
+with check (auth.uid() = id and role = 'member' and department_id is null and is_suspended = false and suspended_at is null and suspended_by is null);
+drop policy if exists "users update own profile" on public.profiles;
+create policy "users update own profile" on public.profiles for update to authenticated
+using (auth.uid() = id) with check (auth.uid() = id);
 
 drop policy if exists "public read visible posts" on public.community_posts;
 create policy "public read visible posts" on public.community_posts for select to anon, authenticated using (is_hidden = false);
@@ -119,9 +124,11 @@ create policy "public read likes" on public.community_likes for select to anon, 
 drop policy if exists "users manage own likes" on public.community_likes;
 create policy "users manage own likes" on public.community_likes for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-grant usage on schema public to anon, authenticated;
-grant select on public.profiles, public.community_posts, public.community_comments, public.community_likes to anon, authenticated;
-grant insert, update, delete on public.profiles, public.community_posts, public.community_comments, public.community_likes to authenticated;
+grant usage on schema public to anon, authenticated, service_role;
+revoke all on public.profiles, public.community_posts, public.community_comments, public.community_likes from anon, authenticated;
+grant select on public.community_posts, public.community_comments, public.community_likes to anon, authenticated;
+grant select, insert, update on public.profiles to authenticated;
+grant insert, update, delete on public.community_posts, public.community_comments, public.community_likes to authenticated;
 grant all on public.profiles, public.community_posts, public.community_comments, public.community_likes to service_role;
 
 -- ------------------------------------------------------------

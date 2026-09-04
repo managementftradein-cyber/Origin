@@ -32,9 +32,10 @@ async function dailyFetch(path, opts = {}) {
 async function requireDeptContext(req, db) {
   const user = await requireUser(req);
   if (isAdminEmail(user.email)) return { user, isHeadAdmin: true, deptId: null };
-  const p = await db.from('profiles').select('role,department_id').eq('id', user.id).maybeSingle();
+  const p = await db.from('profiles').select('role,department_id,display_name,is_suspended').eq('id', user.id).maybeSingle();
   if (p.error) throw p.error;
-  return { user, isHeadAdmin: false, deptId: p.data ? p.data.department_id : null };
+  if (p.data && p.data.is_suspended) throw Object.assign(new Error('Your account has been suspended.'), { status: 403 });
+  return { user, isHeadAdmin: false, deptId: p.data ? p.data.department_id : null, displayName: p.data?.display_name || String(user.email || '').split('@')[0] || 'Member' };
 }
 
 async function startMeeting(req, res, db, ctx) {
@@ -44,24 +45,33 @@ async function startMeeting(req, res, db, ctx) {
   const departmentId = raw && raw !== 'all' ? raw : null;
 
   const roomName = `tcc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-  const room = await dailyFetch('/rooms', {
+  const roomExp = Math.floor(Date.now() / 1000) + 4 * 60 * 60;
+  let room;
+  try { room = await dailyFetch('/rooms', {
     method: 'POST',
     body: JSON.stringify({
       name: roomName,
       privacy: 'private',
-      properties: { enable_chat: true, enable_screenshare: true, exp: Math.floor(Date.now() / 1000) + 4 * 60 * 60, eject_at_room_exp: true }
+      properties: { enable_chat: true, enable_screenshare: true, exp: roomExp, eject_at_room_exp: true, enforce_unique_user_ids: true }
     })
-  });
+  }); } catch (e) { throw e; }
 
   const ins = await db.from('department_meetings').insert({
     department_id: departmentId, title, created_by: ctx.user.id, room_name: room.name, status: 'live'
   }).select('*,departments(name)').single();
-  if (ins.error) throw ins.error;
+  if (ins.error) { try { await dailyFetch(`/rooms/${room.name}`, { method: 'DELETE' }); } catch (_) {} throw ins.error; }
 
-  const token = await dailyFetch('/meeting-tokens', {
-    method: 'POST',
-    body: JSON.stringify({ properties: { room_name: room.name, is_owner: true, user_name: 'Head Admin' } })
-  });
+  let token;
+  try {
+    token = await dailyFetch('/meeting-tokens', {
+      method: 'POST',
+      body: JSON.stringify({ properties: { room_name: room.name, is_owner: true, user_name: 'Head Admin', user_id: ctx.user.id, exp: roomExp, eject_at_token_exp: true } })
+    });
+  } catch (e) {
+    try { await dailyFetch(`/rooms/${room.name}`, { method: 'DELETE' }); } catch (_) {}
+    await db.from('department_meetings').delete().eq('id', ins.data.id);
+    throw e;
+  }
 
   return res.status(201).json({
     meeting: { ...ins.data, department_name: (ins.data.departments && ins.data.departments.name) || 'All Departments' },
@@ -99,12 +109,22 @@ async function joinMeeting(req, res, db, ctx) {
   if (!ctx.isHeadAdmin && m.department_id && m.department_id !== ctx.deptId) {
     return res.status(403).json({ error: 'This meeting is for a different department.' });
   }
+  const now = Math.floor(Date.now() / 1000);
+  const room = await dailyFetch(`/rooms/${m.room_name}`);
+  const roomExp = Number(room.config?.exp || 0);
+  const tokenExp = roomExp > now ? Math.min(roomExp, now + 2 * 60 * 60) : 0;
   const token = await dailyFetch('/meeting-tokens', {
     method: 'POST',
-    body: JSON.stringify({ properties: { room_name: m.room_name, is_owner: false } })
+    body: JSON.stringify({ properties: {
+      room_name: m.room_name,
+      is_owner: false,
+      user_name: ctx.displayName || 'Member',
+      user_id: ctx.user.id,
+      ...(tokenExp ? { exp: tokenExp, eject_at_token_exp: true } : {}),
+      permissions: { canAdmin: false }
+    } })
   });
-  const room = await dailyFetch(`/rooms/${m.room_name}`);
-  return res.json({ join_url: `${room.url}?t=${token.token}` });
+  return res.json({ join_url: `${room.url}?t=${token.token}`, expires_at: tokenExp ? new Date(tokenExp * 1000).toISOString() : null });
 }
 
 module.exports = async (req, res) => {

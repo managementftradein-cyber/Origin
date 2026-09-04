@@ -28,3 +28,7 @@ In **Admin → Giving**, click **Add Account** and enter the bank, account name,
 Invite links are now generated with 256 bits of randomness and are claimed atomically. A link changes from `pending` to `processing` before account creation and then to `used` after successful redemption. This prevents two simultaneous requests from redeeming the same link.
 
 If account creation fails, the invite is returned to `pending` so it can be tried again. Once it reaches `used`, it cannot be reused.
+
+## Security hardening
+
+After the existing migrations, run `supabase/security_hardening_migration.sql`. It closes direct profile-role escalation, removes blanket browser table privileges, removes direct community storage write policies, and aligns the deployed database with the hardened API.

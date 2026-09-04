@@ -20,12 +20,16 @@ const TABLES = [
 ];
 
 function isAuthorized(req) {
-  const secret = process.env.CRON_SECRET;
-  const auth = req.headers['authorization'] || '';
-  if (secret) return auth === `Bearer ${secret}`;
-  // No secret configured — fall back to trusting Vercel's own cron user-agent.
-  // Set CRON_SECRET for a real guarantee this can't be called by anyone else.
-  return req.headers['user-agent'] === 'vercel-cron/1.0';
+  const secret = String(process.env.CRON_SECRET || '');
+  if (!secret || secret.length < 32) return false;
+  const auth = String(req.headers['authorization'] || '');
+  const expected = `Bearer ${secret}`;
+  if (auth.length !== expected.length) return false;
+  try {
+    return require('crypto').timingSafeEqual(Buffer.from(auth), Buffer.from(expected));
+  } catch (_) {
+    return false;
+  }
 }
 
 module.exports = async (req, res) => {
