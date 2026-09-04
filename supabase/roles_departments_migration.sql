@@ -13,6 +13,39 @@
 -- service-role key (same pattern as the rest of the backend), so RLS below
 -- is a defense-in-depth layer, not the primary gate.
 
+create extension if not exists pgcrypto;
+
+-- Safety net: this migration assumes community_schema.sql (profiles) and
+-- schema.sql (departments) have already been run. If either hasn't, create
+-- the minimal table here so this file never fails regardless of order.
+create table if not exists public.profiles(
+  id uuid primary key references auth.users(id) on delete cascade,
+  display_name text,
+  bio text,
+  avatar_url text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.profiles enable row level security;
+drop policy if exists "public read profiles" on public.profiles;
+create policy "public read profiles" on public.profiles for select using(true);
+drop policy if exists "users manage own profile" on public.profiles;
+create policy "users manage own profile" on public.profiles for all using(auth.uid() = id) with check(auth.uid() = id);
+
+create table if not exists public.departments(
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  icon text default '✦',
+  contact_email text,
+  display_order integer default 0,
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
+alter table public.departments enable row level security;
+drop policy if exists "public read active departments" on public.departments;
+create policy "public read active departments" on public.departments for select using(is_active = true);
+
 alter table public.profiles add column if not exists role text not null default 'member';
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles add constraint profiles_role_check check (role in ('member','department_head'));

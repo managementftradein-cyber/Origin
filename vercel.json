@@ -28,6 +28,7 @@
     { "source": "/partnership", "destination": "/index.html" },
     { "source": "/college", "destination": "/index.html" },
     { "source": "/contact", "destination": "/index.html" },
-    { "source": "/give", "destination": "/index.html" }
+    { "source": "/give", "destination": "/index.html" },
+    { "source": "/find-us", "destination": "/index.html" }
   ]
 }
