@@ -58,12 +58,25 @@ async function getSiteContent(db) {
   };
 }
 
+
+async function getGiving(db) {
+  const q = await db.from('giving_accounts')
+    .select('id,label,bank_name,account_name,account_number,sort_code,instructions,currency,display_order')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true })
+    .order('created_at', { ascending: true })
+    .limit(30);
+  if (q.error) throw q.error;
+  return { items: q.data || [] };
+}
+
 const HANDLERS = {
   events: getEvents,
   departments: getDepartments,
   photos: getPhotos,
   news: getNews,
   'prophetic-words': getPropheticWords,
+  giving: getGiving,
   'site-content': getSiteContent
 };
 

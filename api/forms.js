@@ -1,8 +1,8 @@
-const { sb } = require('./_supabase');
+const { sb, clientIp, checkRateLimit, isHoneypotTripped } = require('./_supabase');
 
 // Consolidated public POST endpoints. Each handler's logic (validation,
 // tables touched, response shape) is unchanged from the original files —
-// only the routing (type dispatch) is new.
+// only the routing (type dispatch) plus honeypot/rate-limit checks are new.
 
 async function handleContact(db, body) {
   const { name, email, phone, message } = body;
@@ -65,13 +65,32 @@ const HANDLERS = {
   'prayer-requests': handlePrayerRequest
 };
 
+// Requests per IP per window, per form. Generous enough for a real visitor
+// filling the form a couple of times, tight enough to stop scripted spam.
+const LIMITS = {
+  contact: { limit: 5, windowSeconds: 600 },
+  subscribe: { limit: 8, windowSeconds: 3600 },
+  'prayer-requests': { limit: 5, windowSeconds: 600 }
+};
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const type = String(req.query.type || '');
   const handler = HANDLERS[type];
   if (!handler) return res.status(400).json({ error: `Unknown form type: ${type}` });
+
+  const body = req.body || {};
+  // Silently "succeed" on honeypot trips so scripts don't learn they were caught.
+  if (isHoneypotTripped(body)) return res.status(200).json({ ok: true });
+
   try {
-    const result = await handler(sb(), req.body || {});
+    const db = sb();
+    const rl = LIMITS[type];
+    if (rl) {
+      const ok = await checkRateLimit(db, `forms:${type}:${clientIp(req)}`, rl.limit, rl.windowSeconds);
+      if (!ok) return res.status(429).json({ error: 'Too many submissions. Please wait a few minutes and try again.' });
+    }
+    const result = await handler(db, body);
     return res.status(result.status).json(result.body);
   } catch (e) {
     console.error(e);

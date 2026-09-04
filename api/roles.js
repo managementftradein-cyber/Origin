@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { sb, requireUser, isAdminEmail } = require('./_supabase');
+const { sb, requireUser, isAdminEmail, clientIp, checkRateLimit, isHoneypotTripped } = require('./_supabase');
 
 const SUSPEND_BAN_DURATION = '87600h'; // ~10 years — effectively blocks sign-in
 const INVITE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -149,7 +149,7 @@ async function createInvite(req, res, db, ctx, req_) {
   if (!departmentId) return res.status(400).json({ error: 'Missing department_id' });
   const applicant_name = String((req.body || {}).applicant_name || '').trim() || null;
   const applicant_email = String((req.body || {}).applicant_email || '').trim() || null;
-  const token = crypto.randomBytes(16).toString('hex');
+  const token = crypto.randomBytes(32).toString('hex');
   const expires_at = new Date(Date.now() + INVITE_TTL_MS).toISOString();
   const ins = await db.from('department_invites').insert({
     token, department_id: departmentId, created_by: ctx.user.id, applicant_name, applicant_email, expires_at
@@ -174,6 +174,9 @@ async function revokeInvite(req, res, db, ctx) {
 // is the ONLY way to create a community account — there is no open signup.
 async function applyWithInvite(req, res, db) {
   const body = req.body || {};
+  if (isHoneypotTripped(body)) return res.status(201).json({ ok: true });
+  const ok = await checkRateLimit(db, `apply:${clientIp(req)}`, 5, 3600);
+  if (!ok) return res.status(429).json({ error: 'Too many attempts. Please wait a while and try again.' });
   const token = String(body.token || '').trim();
   const email = String(body.email || '').trim().toLowerCase();
   const password = String(body.password || '');
@@ -185,21 +188,53 @@ async function applyWithInvite(req, res, db) {
   if (q.error) throw q.error;
   const inv = q.data;
   if (!inv) return res.status(400).json({ error: 'This invite link is invalid.' });
-  if (inv.status !== 'pending') return res.status(400).json({ error: 'This invite link has already been used or was revoked.' });
+  if (inv.status !== 'pending') return res.status(400).json({ error: 'This invite link has already been used or is no longer valid.' });
   if (inv.expires_at && new Date(inv.expires_at) < new Date()) return res.status(400).json({ error: 'This invite link has expired.' });
+
+  // Atomically claim the invite before creating the account. This prevents
+  // two simultaneous redemption requests from both using the same link.
+  const claim = await db.from('department_invites')
+    .update({ status: 'processing' })
+    .eq('id', inv.id)
+    .eq('status', 'pending')
+    .select('*')
+    .maybeSingle();
+  if (claim.error) throw claim.error;
+  if (!claim.data) return res.status(400).json({ error: 'This invite link has already been used or is no longer valid.' });
+
+  const claimed = claim.data;
+  if (claimed.expires_at && new Date(claimed.expires_at) < new Date()) {
+    await db.from('department_invites').update({ status: 'pending' }).eq('id', claimed.id).eq('status', 'processing');
+    return res.status(400).json({ error: 'This invite link has expired.' });
+  }
 
   const created = await db.auth.admin.createUser({ email, password, email_confirm: true });
   if (created.error) {
+    await db.from('department_invites').update({ status: 'pending' }).eq('id', claimed.id).eq('status', 'processing');
     const m = String(created.error.message || '');
     if (/already registered|already exists/i.test(m)) return res.status(400).json({ error: 'An account with this email already exists. Please sign in instead.' });
     return res.status(400).json({ error: m || 'Could not create your account.' });
   }
   const newUser = created.data.user;
 
-  const prof = await db.from('profiles').upsert({ id: newUser.id, department_id: inv.department_id, role: 'member' }, { onConflict: 'id' });
-  if (prof.error) throw prof.error;
+  const prof = await db.from('profiles').upsert({ id: newUser.id, department_id: claimed.department_id, role: 'member' }, { onConflict: 'id' });
+  if (prof.error) {
+    try { await db.auth.admin.deleteUser(newUser.id); } catch (_) {}
+    await db.from('department_invites').update({ status: 'pending' }).eq('id', claimed.id).eq('status', 'processing');
+    throw prof.error;
+  }
 
-  await db.from('department_invites').update({ status: 'used', used_at: new Date().toISOString(), used_by: newUser.id }).eq('id', inv.id).eq('status', 'pending');
+  const finish = await db.from('department_invites')
+    .update({ status: 'used', used_at: new Date().toISOString(), used_by: newUser.id })
+    .eq('id', claimed.id)
+    .eq('status', 'processing')
+    .select('id')
+    .maybeSingle();
+  if (finish.error || !finish.data) {
+    try { await db.auth.admin.deleteUser(newUser.id); } catch (_) {}
+    await db.from('department_invites').update({ status: 'pending' }).eq('id', claimed.id).eq('status', 'processing');
+    throw (finish.error || new Error('Could not finalize invite redemption.'));
+  }
 
   return res.status(201).json({ ok: true });
 }

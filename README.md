@@ -9,6 +9,7 @@ Clean Vercel + Supabase deployment package.
 - `api/*.js` — Vercel serverless API functions
 - `supabase/tcc_v8_safe_migration.sql` — safe database additions (news, prophetic room, live status, etc.)
 - `supabase/community_schema.sql` — Community platform tables (profiles, posts, comments, likes)
+- `supabase/community_schema_patch.sql` — defensive repair plus Community Storage, Giving/Offering accounts, and one-time invite-link safeguards
 
 ## Vercel
 Import the GitHub repository with the files at repository root.
@@ -41,8 +42,16 @@ Then run `supabase/community_schema.sql` to add the Community platform tables
 row-level security policies. This is also safe to run more than once.
 
 ## Community platform
-`community.html` is a members' social feed: anyone can create a free account
-(email + password, via Supabase Auth) to post updates, like, and comment.
-Posts and comments are public-read by default; each member can only edit or
-delete their own content. Church staff can hide or delete any post/comment
-from **Admin → Community Posts / Community Comments**.
+`community.html` is a members' social feed. Accounts are created through one-time
+invite links issued from **Admin → Community Roles**. Posts and comments are
+public-read by default; each member can only edit or delete their own content.
+Church staff can hide or delete any post/comment from **Admin → Community
+Posts / Community Comments**. See `SUPABASE-REPAIR-ORDER.md` for the repair
+and migration order.
+
+## Integrated updates
+- Admin Giving/Offering accounts are managed from the Admin dashboard and published to the public Give page.
+- Community invite redemption is race-safe and one-time; rate limiting and honeypot protection are included.
+- Live department/community video meetings are included; configure `DAILY_API_KEY` in Vercel and run `supabase/meetings_migration.sql`.
+- Automated backup support and rate-limit storage migrations are included.
+- See `SUPABASE-REPAIR-ORDER.md` and `SETUP_CHECKLIST.md` before deployment.

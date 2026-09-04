@@ -1,6 +1,8 @@
 // Consolidated tiny GET endpoints. Each handler's logic is unchanged from
 // the original files — only the routing (type dispatch) is new.
 
+const { sb, requireAdmin } = require('./_supabase');
+
 function handleHealth() {
   const checks = {
     supabase_url: !!process.env.SUPABASE_URL,
@@ -31,10 +33,26 @@ function handleAuthStatus(req) {
   return { status: 200, body: result };
 }
 
+// Head-admin-only: list recent automated backups (created by
+// api/cron-backup.js) with time-limited download links.
+async function handleBackups(req) {
+  await requireAdmin(req);
+  const db = sb();
+  const list = await db.storage.from('backups').list('', { limit: 30, sortBy: { column: 'name', order: 'desc' } });
+  if (list.error) return { status: 500, body: { error: list.error.message } };
+  const files = list.data || [];
+  const items = await Promise.all(files.map(async (f) => {
+    const signed = await db.storage.from('backups').createSignedUrl(f.name, 3600);
+    return { name: f.name, created_at: f.created_at, size: f.metadata && f.metadata.size, url: signed.data ? signed.data.signedUrl : null };
+  }));
+  return { status: 200, body: { items } };
+}
+
 const HANDLERS = {
   health: () => handleHealth(),
   config: () => handleConfig(),
-  'auth-status': (req) => handleAuthStatus(req)
+  'auth-status': (req) => handleAuthStatus(req),
+  backups: (req) => handleBackups(req)
 };
 
 module.exports = async (req, res) => {
@@ -43,10 +61,10 @@ module.exports = async (req, res) => {
   const handler = HANDLERS[type];
   if (!handler) return res.status(400).json({ error: `Unknown system type: ${type}` });
   try {
-    const result = handler(req);
+    const result = await handler(req);
     return res.status(result.status).json(result.body);
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: e.message || 'Server error' });
+    return res.status(e.status || 500).json({ error: e.message || 'Server error' });
   }
 };

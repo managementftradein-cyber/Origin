@@ -1,6 +1,6 @@
 # TCC Admin v10
 
-This version focuses on the premium black/gold control-center layout shown in the supplied reference screenshot while retaining the functional Supabase/Vercel admin flow.
+This version focuses on the premium black/red control-center layout shown in the supplied reference screenshot while retaining the functional Supabase/Vercel admin flow.
 
 Deployment:
 - Keep all files at repository root.

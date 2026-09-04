@@ -52,7 +52,7 @@ function showLogin(message=''){
  x.innerHTML=`<div class="login-card"><h1 class="login-brand">TCC ADMIN</h1><p class="login-sub">Sign in to the Christocentric Church control center.</p>
  <form id="tccLoginForm"><div class="field"><label>Email</label><input name="email" type="email" required autocomplete="username" placeholder="Admin email"></div>
  <div class="field"><label>Password</label><input name="password" type="password" required autocomplete="current-password" placeholder="Password"></div>
- <button class="btn gold" type="submit">SIGN IN</button><div id="tccLoginMsg" style="color:#d9c991;margin-top:12px;line-height:1.5"></div></form></div>`;
+ <button class="btn red" type="submit">SIGN IN</button><div id="tccLoginMsg" style="color:#d9c991;margin-top:12px;line-height:1.5"></div></form></div>`;
  document.body.appendChild(x);
  $('#tccLoginForm').onsubmit=async e=>{
   e.preventDefault();const f=e.currentTarget,b=f.querySelector('button');b.disabled=true;b.textContent='SIGNING IN…';
@@ -98,7 +98,7 @@ function openEditor(page,id,row={}){
   if(type==='check')return `<label class="switch"><input type="checkbox" name="${n}" ${v?'checked':''}> ${esc(label)}</label>`;
   const inputType=n==='date'?'date':'text';
   return `<div class="field"><label>${esc(label)}</label><input name="${n}" type="${inputType}" value="${esc(v)}"></div>`;
- }).join('')+'<button class="btn gold" type="submit">Save Changes</button>';
+ }).join('')+'<button class="btn red" type="submit">Save Changes</button>';
  m.classList.add('open');
  f.onsubmit=async e=>{
   e.preventDefault();const data={};
@@ -147,6 +147,25 @@ async function upload(file){
   }catch(e){toast(e.message,'error')}
  };reader.readAsDataURL(file);
 }
+async function loadGivingAccounts(){
+ const el=$('#table-givingAccounts'); if(!el)return; el.innerHTML='<div class="loading">Loading…</div>';
+ try{
+  const d=await api('giving_accounts'); const rows=d.items||[];
+  if(!rows.length){el.innerHTML='<div class="empty">No offering accounts yet. Click “Add Account” to publish one.</div>';return}
+  el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Label</th><th>Bank</th><th>Account Name</th><th>Account Number</th><th>Currency</th><th>Active</th><th>Actions</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.label||'Offering')}</td><td>${esc(r.bank_name||'—')}</td><td>${esc(r.account_name||'—')}</td><td>${esc(r.account_number||'—')}</td><td>${esc(r.currency||'—')}</td><td>${r.is_active?'Yes':'No'}</td><td><button class="btn" data-ga-edit="${esc(r.id)}">Edit</button> <button class="btn danger" data-ga-del="${esc(r.id)}">Delete</button></td></tr>`).join('')}</tbody></table></div>`;
+  $$('[data-ga-edit]').forEach(b=>b.onclick=()=>openGivingAccountEditor(rows.find(r=>r.id===b.dataset.gaEdit)));
+  $$('[data-ga-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this offering account? It will disappear from the public Give page.'))return;try{await api('giving_accounts','DELETE',{id:b.dataset.gaDel});toast('Offering account deleted');await loadGivingAccounts()}catch(e){toast(e.message,'error')}});
+ }catch(e){el.innerHTML=`<div class="errorbox">${esc(e.message)}</div>`}
+}
+function openGivingAccountEditor(row={}){
+ const m=$('#modal'),f=$('#editor'); if(!m||!f)return;
+ $('#modalTitle').textContent=row.id?'Edit Offering Account':'Add Offering Account';
+ const fields=[['label','Display label','text'],['bank_name','Bank name','text'],['account_name','Account name','text'],['account_number','Account number','text'],['sort_code','Sort code / branch code','text'],['currency','Currency','text'],['instructions','Instructions','textarea'],['display_order','Display order','number']];
+ f.innerHTML=fields.map(([n,l,t])=>t==='textarea'?`<div class="field"><label>${l}</label><textarea name="${n}">${esc(row[n]??'')}</textarea></div>`:`<div class="field"><label>${l}</label><input name="${n}" type="${t}" value="${esc(row[n]??(n==='currency'?'NGN':n==='display_order'?'0':''))}" ${n==='bank_name'||n==='account_name'||n==='account_number'?'required':''}></div>`).join('')+`<label class="switch"><input type="checkbox" name="is_active" ${(!row.id || row.is_active !== false)?'checked':''}> Publish this account on the public Give page</label><button class="btn red" type="submit">Save Account</button>`;
+ m.classList.add('open');
+ f.onsubmit=async e=>{e.preventDefault();const data={};fields.forEach(([n])=>{const x=f.elements[n];if(x)data[n]=x.type==='number'?Number(x.value||0):x.value});data.is_active=f.elements.is_active.checked;try{await api('giving_accounts',row.id?'PATCH':'POST',row.id?{id:row.id,data}:{data});m.classList.remove('open');toast(row.id?'Account updated':'Account published');await loadGivingAccounts()}catch(err){toast(err.message,'error')}};
+}
+
 async function privatePage(p){
  const el=$(`#table-${p}`);el.innerHTML='<div class="loading">Loading…</div>';
  try{
@@ -259,14 +278,65 @@ async function loadRoles(){
    $('#roleInviteDept').innerHTML=allDepartments.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
   }
  }catch(e){/* department list best-effort */}
- loadDeptHeads();loadAllInvites();loadAllMembers();
+ loadDeptHeads();loadAllInvites();loadAllMembers();loadActiveMeetings();
  const search=$('[data-search="allMembers"]');
  if(search)search.oninput=()=>renderAllMembers(allMembersCache,search.value);
 }
 
-function load(p){
- if(configs[p])loadContent(p);else if(p==='dashboard')dashboard();else if(p==='analytics')analytics();else if(p==='hero')loadHero();else if(p==='live')loadLive();else if(p==='gallery')loadGallery();else if(p==='roles')loadRoles();else if(['prayers','messages','subscribers','giving'].includes(p))privatePage(p);else if(p==='settings')loadSettings();else if(p==='admins')$('#adminInfo').textContent=TCCAdmin.user?`Signed in as ${TCCAdmin.user.email}`:'Not signed in';
+async function meetingsApi(type,method='GET',body=null){
+ const token=await TCCAdmin.token();
+ if(!token) throw Error('Your admin session has expired. Please sign in again.');
+ const opt={method,headers:{Authorization:`Bearer ${token}`}};
+ if(body){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body)}
+ const r=await fetch(`/api/meetings?type=${encodeURIComponent(type)}`,opt);
+ let d={};try{d=await r.json()}catch(_){}
+ if(!r.ok)throw Error(d.error||`Request failed (${r.status})`);
+ return d;
 }
+
+async function loadActiveMeetings(){
+ const el=$('#table-activeMeetings');
+ try{
+  const d=await meetingsApi('active');const rows=d.items||[];
+  if(!rows.length){el.innerHTML='<div class="empty">No live meetings right now.</div>';return}
+  el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Title</th><th>Department</th><th>Started</th><th>Actions</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.title)}</td><td>${esc(r.department_name)}</td><td>${fmtDate(r.started_at)}</td><td><button class="btn" data-joinmeet="${esc(r.id)}">Join</button> <button class="btn danger" data-endmeet="${esc(r.id)}">End</button></td></tr>`).join('')}</tbody></table></div>`;
+  $$('[data-joinmeet]').forEach(b=>b.onclick=async()=>{
+   try{const d=await meetingsApi('join','POST',{meeting_id:b.dataset.joinmeet});window.open(d.join_url,'_blank','noopener')}catch(e){toast(e.message,'error')}
+  });
+  $$('[data-endmeet]').forEach(b=>b.onclick=async()=>{
+   if(!confirm('End this meeting for everyone?'))return;
+   try{await meetingsApi('end','POST',{meeting_id:b.dataset.endmeet});toast('Meeting ended');await loadActiveMeetings()}catch(e){toast(e.message,'error')}
+  });
+ }catch(e){el.innerHTML=`<div class="errorbox">${esc(e.message)}</div>`}
+}
+
+function bindMeetingForm(){
+ $('#meetingForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();const f=e.currentTarget,btn=f.querySelector('button'),msg=$('#meetingMsg');
+  btn.disabled=true;msg.textContent='Starting meeting…';
+  try{
+   const d=await meetingsApi('start','POST',{title:f.title.value,department_id:f.department_id.value});
+   msg.textContent=`Meeting started: ${d.meeting.title}`;
+   window.open(d.join_url,'_blank','noopener');
+   f.title.value='';await loadActiveMeetings();
+  }catch(err){msg.textContent=err.message}finally{btn.disabled=false}
+ });
+}
+
+function load(p){
+ if(configs[p])loadContent(p);else if(p==='dashboard')dashboard();else if(p==='analytics')analytics();else if(p==='hero')loadHero();else if(p==='live')loadLive();else if(p==='gallery')loadGallery();else if(p==='roles')loadRoles();else if(p==='giving')loadGiving();else if(['prayers','messages','subscribers'].includes(p))privatePage(p);else if(p==='settings')loadSettings();else if(p==='admins')$('#adminInfo').textContent=TCCAdmin.user?`Signed in as ${TCCAdmin.user.email}`:'Not signed in';
+}
+async function loadGiving(){
+ loadGivingAccounts();
+ const el=$('#table-giving'); if(!el)return; el.innerHTML='<div class="loading">Loading…</div>';
+ try{
+  const d=await api('giving_records'),rows=d.items||[];
+  if(!rows.length){el.innerHTML='<div class="empty">No giving records yet.</div>';return}
+  const keys=['donor_name','amount','currency','reference','status','created_at'];
+  el.innerHTML=`<div class="table-wrap"><table><thead><tr>${keys.map(k=>`<th>${esc(k.replaceAll('_',' '))}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>'<tr>'+keys.map(k=>`<td>${esc(r[k])}</td>`).join('')+'</tr>').join('')}</tbody></table></div>`;
+ }catch(e){el.innerHTML=`<div class="errorbox">${esc(e.message)}</div>`}
+}
+
 function bind(){
  $$('[data-p]').forEach(b=>b.onclick=()=>go(b.dataset.p));
  $$('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
@@ -294,6 +364,8 @@ function bind(){
    f.applicant_name.value='';f.applicant_email.value='';await loadAllInvites();
   }catch(err){msg.textContent=err.message}finally{btn.disabled=false}
  });
+ $('#newGivingAccount')?.addEventListener('click',()=>openGivingAccountEditor({}));
+ bindMeetingForm();
  $('#uploadBtn')?.addEventListener('click',()=>$('#fileInput').click());
  $('#fileInput')?.addEventListener('change',e=>{if(e.target.files[0])upload(e.target.files[0]);e.target.value=''});
 }

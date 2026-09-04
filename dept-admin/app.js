@@ -26,7 +26,7 @@ function showLogin(message=''){
  x.innerHTML=`<div class="login-card"><h1 class="login-brand">TCC DEPT HEAD</h1><p class="login-sub">Sign in with your department head account.</p>
  <form id="tccLoginForm"><div class="field"><label>Email</label><input name="email" type="email" required autocomplete="username" placeholder="Email"></div>
  <div class="field"><label>Password</label><input name="password" type="password" required autocomplete="current-password" placeholder="Password"></div>
- <button class="btn gold" type="submit">SIGN IN</button><div id="tccLoginMsg" style="color:#d9c991;margin-top:12px;line-height:1.5"></div></form></div>`;
+ <button class="btn red" type="submit">SIGN IN</button><div id="tccLoginMsg" style="color:#d9c991;margin-top:12px;line-height:1.5"></div></form></div>`;
  document.body.appendChild(x);
  $('#tccLoginForm').onsubmit=async e=>{
   e.preventDefault();const f=e.currentTarget,b=f.querySelector('button');b.disabled=true;b.textContent='SIGNING IN…';
@@ -95,6 +95,33 @@ function bind(){
  };
 }
 
+async function meetingsApi(type,method='GET',body=null){
+ const token=await TCCAdmin.token();
+ if(!token) throw Error('Your session has expired. Please sign in again.');
+ const opt={method,headers:{Authorization:`Bearer ${token}`}};
+ if(body){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body)}
+ const r=await fetch(`/api/meetings?type=${encodeURIComponent(type)}`,opt);
+ let d={};try{d=await r.json()}catch(_){}
+ if(!r.ok)throw Error(d.error||`Request failed (${r.status})`);
+ return d;
+}
+
+async function loadDeptMeeting(){
+ const el=$('#deptMeetingBanner');
+ try{
+  const d=await meetingsApi('active');const items=d.items||[];
+  if(!items.length){el.innerHTML='';return}
+  const m=items[0];
+  el.innerHTML=`<div class="panel" style="border-color:var(--red);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+   <div><b style="color:var(--red)">Live now:</b> ${esc(m.title)}</div>
+   <button class="btn red" id="joinDeptMeeting">Join Meeting</button>
+  </div>`;
+  $('#joinDeptMeeting').onclick=async()=>{
+   try{const dd=await meetingsApi('join','POST',{meeting_id:m.id});window.open(dd.join_url,'_blank','noopener')}catch(e){toast(e.message,'error')}
+  };
+ }catch(_){el.innerHTML=''}
+}
+
 async function boot(){
  try{
   const u=await TCCAdmin.init();if(!u){showLogin();return}
@@ -103,7 +130,7 @@ async function boot(){
   $('#deptName').textContent=(d.department&&d.department.name)||'your department';
   $('#deptTitle').textContent=`${(d.department&&d.department.name)||'DEPARTMENT'} — HEAD`;
   $('#app').classList.remove('hidden');
-  bind();loadInvites();loadMembers();
+  bind();loadInvites();loadMembers();loadDeptMeeting();
  }catch(e){
   console.error(e);
   if(e.message&&/department head access/i.test(e.message)){showLogin('This account does not have department head access.');await TCCAdmin.logout()}

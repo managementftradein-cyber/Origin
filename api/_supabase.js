@@ -12,7 +12,7 @@ function sb() {
 const tables = {
   sermons: 'sermons', events: 'events', announcements: 'announcements',
   prayer: 'prayer_requests', prayer_requests: 'prayer_requests', visitors: 'visitors', subscribers: 'subscribers',
-  giving: 'giving_records', giving_records: 'giving_records', settings: 'church_settings',
+  giving: 'giving_records', giving_records: 'giving_records', giving_accounts: 'giving_accounts', settings: 'church_settings',
   gallery: 'gallery_photos', departments: 'departments', news: 'news', prophetic_words: 'prophetic_words', live_status: 'live_status',
   community_posts: 'community_posts', community_comments: 'community_comments', profiles: 'profiles'
 };
@@ -58,4 +58,34 @@ async function requireAdmin(req) {
   return user;
 }
 
-module.exports = { sb, tables, requireAdmin, requireUser, isAdminEmail };
+// Best-effort client IP for rate limiting. Vercel sets x-forwarded-for.
+function clientIp(req) {
+  const xf = req.headers['x-forwarded-for'];
+  if (xf) return String(xf).split(',')[0].trim();
+  return (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+
+// Fixed-window rate limit backed by the rate_limit_hits table (see
+// supabase/rate_limiting_migration.sql). Fails OPEN (allows the request) if
+// the check itself errors — e.g. the migration hasn't been run yet — so a
+// missing migration degrades to "no rate limiting" rather than breaking the
+// site.
+async function checkRateLimit(db, key, limit, windowSeconds) {
+  try {
+    const { data, error } = await db.rpc('check_rate_limit', { p_key: key, p_limit: limit, p_window_seconds: windowSeconds });
+    if (error) { console.warn('Rate limit check failed (allowing request):', error.message); return true; }
+    return data !== false;
+  } catch (e) {
+    console.warn('Rate limit check error (allowing request):', e.message);
+    return true;
+  }
+}
+
+// Simple honeypot check for public forms: a hidden field real users never
+// fill in. If it has a value, the submission is almost certainly a bot.
+// Returns true (silently) so we don't tip bots off with a distinct error.
+function isHoneypotTripped(body) {
+  return !!(body && String(body.website || body.company_website || '').trim());
+}
+
+module.exports = { sb, tables, requireAdmin, requireUser, isAdminEmail, clientIp, checkRateLimit, isHoneypotTripped };
