@@ -26,7 +26,7 @@ function showLogin(message=''){
  x.innerHTML=`<div class="login-card"><h1 class="login-brand">TCC DEPT HEAD</h1><p class="login-sub">Sign in with your department head account.</p>
  <form id="tccLoginForm"><div class="field"><label>Email</label><input name="email" type="email" required autocomplete="username" placeholder="Email"></div>
  <div class="field"><label>Password</label><input name="password" type="password" required autocomplete="current-password" placeholder="Password"></div>
- <button class="btn gold" type="submit">SIGN IN</button><div id="tccLoginMsg" style="color:#d9c991;margin-top:12px;line-height:1.5"></div></form></div>`;
+ <button class="btn red" type="submit">SIGN IN</button><div id="tccLoginMsg" style="color:#d9c991;margin-top:12px;line-height:1.5"></div></form></div>`;
  document.body.appendChild(x);
  $('#tccLoginForm').onsubmit=async e=>{
   e.preventDefault();const f=e.currentTarget,b=f.querySelector('button');b.disabled=true;b.textContent='SIGNING IN…';
@@ -112,9 +112,9 @@ async function loadDeptMeeting(){
   const d=await meetingsApi('active');const items=d.items||[];
   if(!items.length){el.innerHTML='';return}
   const m=items[0];
-  el.innerHTML=`<div class="panel" style="border-color:var(--gold);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
-   <div><b style="color:var(--gold)">Live now:</b> ${esc(m.title)}</div>
-   <button class="btn gold" id="joinDeptMeeting">Join Meeting</button>
+  el.innerHTML=`<div class="panel" style="border-color:var(--red);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+   <div><b style="color:var(--red)">Live now:</b> ${esc(m.title)}</div>
+   <button class="btn red" id="joinDeptMeeting">Join Meeting</button>
   </div>`;
   $('#joinDeptMeeting').onclick=async()=>{
    try{const dd=await meetingsApi('join','POST',{meeting_id:m.id});window.open(dd.join_url,'_blank','noopener')}catch(e){toast(e.message,'error')}
