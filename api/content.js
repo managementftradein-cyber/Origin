@@ -44,7 +44,7 @@ async function getPropheticWords(db) {
 
 async function getSiteContent(db) {
   const settings = await db.from('church_settings')
-    .select('church_name,email,phone,location,service_times,about_label,about_heading,about_body,about_quote,about_image_url,hero_eyebrow,hero_title,hero_body,hero_interval_seconds,map_url,facebook_url,instagram_url,youtube_url,spotify_url')
+    .select('church_name,email,phone,location,service_times,about_label,about_heading,about_body,about_quote,about_image_url,hero_eyebrow,hero_title,hero_body,hero_interval_seconds,map_url,facebook_url,instagram_url,youtube_url,spotify_url,launch_enabled,launch_date,launch_title,launch_subtitle,launch_complete_title,launch_complete_body,launch_timezone')
     .eq('id', 1).maybeSingle();
   if (settings.error) throw settings.error;
   const photos = await db.from('gallery_photos').select('id,url,caption,category,display_order,is_active').eq('is_active', true).order('display_order', { ascending: true }).limit(100);

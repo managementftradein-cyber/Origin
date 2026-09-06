@@ -113,8 +113,11 @@ async function loadHero(){
   ['about_label','about_heading','about_body','about_quote','about_image_url'].forEach(n=>{const x=$('#aboutForm').elements[n];if(x)x.value=s[n]??''});
  }catch(e){toast(e.message,'error')}
 }
+function localDateTimeValue(iso){if(!iso)return '';try{const d=new Date(iso);if(Number.isNaN(d.getTime()))return '';const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}catch(_){return ''}}
+function isoFromLocalDateTime(v){if(!v)return null;const d=new Date(v);return Number.isNaN(d.getTime())?null:d.toISOString()}
 async function saveSettings(form){
  const data={};[...form.elements].forEach(x=>{if(x.name)data[x.name]=x.type==='checkbox'?x.checked:x.value});
+ if(data.launch_date!==undefined)data.launch_date=isoFromLocalDateTime(data.launch_date);
  try{await api('settings','POST',{data});toast('Saved successfully')}catch(e){toast(e.message,'error')}
 }
 async function loadLive(){
@@ -189,6 +192,7 @@ async function loadSettings(){
  try{
   const d=await api('settings'),s=(d.items||[])[0]||{};
   ['church_name','email','phone','location','map_url','logo_url'].forEach(n=>{const x=$('#settingsForm').elements[n];if(x)x.value=s[n]??''});
+  const lf=$('#launchForm'); if(lf){lf.elements.launch_enabled.checked=!!s.launch_enabled;lf.elements.launch_date.value=localDateTimeValue(s.launch_date);lf.elements.launch_timezone.value=s.launch_timezone||'Africa/Lagos';lf.elements.launch_title.value=s.launch_title||'THE ORIGIN IS NEAR';lf.elements.launch_subtitle.value=s.launch_subtitle||'Christ at the centre. Everything else follows.';lf.elements.launch_complete_title.value=s.launch_complete_title||'WE ARE LIVE';lf.elements.launch_complete_body.value=s.launch_complete_body||'Welcome to The Christocentric Church.';}
   ['facebook_url','instagram_url','youtube_url','spotify_url'].forEach(n=>{const x=$('#socialForm').elements[n];if(x)x.value=s[n]??''});
  }catch(e){toast(e.message,'error')}
 }
@@ -351,6 +355,7 @@ function bind(){
  $('#heroForm')?.addEventListener('submit',e=>{e.preventDefault();saveSettings(e.target)});
  $('#aboutForm')?.addEventListener('submit',e=>{e.preventDefault();saveSettings(e.target)});
  $('#settingsForm')?.addEventListener('submit',e=>{e.preventDefault();saveSettings(e.target)});
+ $('#launchForm')?.addEventListener('submit',e=>{e.preventDefault();saveSettings(e.target)});
  $('#socialForm')?.addEventListener('submit',e=>{e.preventDefault();saveSettings(e.target)});
  $('#liveForm')?.addEventListener('submit',async e=>{e.preventDefault();const data={};[...e.currentTarget.elements].forEach(x=>{if(x.name)data[x.name]=x.type==='checkbox'?x.checked:x.value});try{await api('live_status','POST',{data});toast('Live settings saved');await loadLive()}catch(x){toast(x.message,'error')}});
  $('#roleInviteForm')?.addEventListener('submit',async e=>{
