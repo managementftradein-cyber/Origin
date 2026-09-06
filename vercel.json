@@ -1,8 +1,116 @@
 {
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/events",
+      "destination": "/api/content?type=events"
+    },
+    {
+      "source": "/api/departments",
+      "destination": "/api/content?type=departments"
+    },
+    {
+      "source": "/api/photos",
+      "destination": "/api/content?type=photos"
+    },
+    {
+      "source": "/api/news",
+      "destination": "/api/content?type=news"
+    },
+    {
+      "source": "/api/prophetic-words",
+      "destination": "/api/content?type=prophetic-words"
+    },
+    {
+      "source": "/api/giving",
+      "destination": "/api/content?type=giving"
+    },
+    {
+      "source": "/api/site-content",
+      "destination": "/api/content?type=site-content"
+    },
+    {
+      "source": "/api/contact",
+      "destination": "/api/forms?type=contact"
+    },
+    {
+      "source": "/api/subscribe",
+      "destination": "/api/forms?type=subscribe"
+    },
+    {
+      "source": "/api/prayer-requests",
+      "destination": "/api/forms?type=prayer-requests"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/system?type=health"
+    },
+    {
+      "source": "/api/config",
+      "destination": "/api/system?type=config"
+    },
+    {
+      "source": "/api/auth-status",
+      "destination": "/api/system?type=auth-status"
+    },
+    {
+      "source": "/community",
+      "destination": "/community.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/admin/",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/dept-admin",
+      "destination": "/dept-admin/index.html"
+    },
+    {
+      "source": "/dept-admin/",
+      "destination": "/dept-admin/index.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/programs",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/partnership",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/college",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/give",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/find-us",
+      "destination": "/index.html"
+    }
+  ],
   "crons": [
     {
-      "path": "/api/cron/savings-reminders",
-      "schedule": "0 9 * * *"
+      "path": "/api/cron-backup",
+      "schedule": "0 3 * * *"
     }
   ]
 }
